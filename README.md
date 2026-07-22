@@ -1,112 +1,189 @@
-# Konexa
+# 🚀 Konexa
 
 # Enterprise DevOps Operations Platform
 
-**Tagline:** Connect • Automate • Scale
+> **Connect • Automate • Scale**
 
 ---
 
-## About Konexa
+# 📖 About Konexa
 
 Konexa is a long-term Enterprise DevOps Operations Platform developed as part of my DevOps learning journey.
 
-Instead of creating separate projects for every module, Konexa evolves version by version as new technologies are learned.
-
-Each module introduces new capabilities while building on the previous version, resulting in a complete enterprise-grade DevOps platform by the end of the course.
+Instead of creating separate projects for every course module, Konexa evolves version by version. Each completed module becomes a permanent part of the platform, resulting in a complete enterprise-grade DevOps Operations Platform by the end of the learning journey.
 
 ---
 
-# Current Version
+# 📌 Current Version
 
 ## Konexa v1.0 – Foundation
 
-Status: 🚧 In Development
+**Status:** ✅ Module 1 Completed
 
-Version 1 focuses on building the foundation of the platform using Git, Linux, AWS, Bash scripting, and automation.
+Version 1 establishes the foundation of Konexa by implementing Linux Administration, AWS Cloud, Git & GitHub, Bash Automation, Log Monitoring, Website Hosting, and Backup Management.
 
 ---
 
-# Module 1 Features
+# 🎯 Project Objective
 
-### DevOps Fundamentals
-- Introduction to DevOps
-- DevOps Lifecycle
-- Basic DevOps Practices
+Build a cloud-hosted Linux server capable of:
 
-### Source Code Management
-- Git
-- GitHub
-- Branching
-- Repository Management
+- Hosting the Konexa frontend
+- Automating server health monitoring
+- Creating website backups
+- Monitoring system logs
+- Storing backups and logs in Amazon S3
+- Managing source code with Git & GitHub
 
-### Linux Administration
-- Linux Basics
-- File Management
+---
+
+# ✨ Module 1 Features
+
+## ☁️ AWS Cloud
+
+- Custom VPC
+- Public Subnet
+- Internet Gateway
+- Route Table
+- Security Group
+- Ubuntu EC2 Instance
+- Apache Web Server
+
+---
+
+## 🐧 Linux Administration
+
+- Linux File Management
 - User Management
 - Package Management
 - Process Management
 - Networking Commands
+- Service Management
 
-### Bash Automation
-- Health Check Script
-- Apache Monitoring Script
-- Automated Backup Script
+---
 
-### Log Monitoring
+## 🌿 Git & GitHub
+
+- Repository Management
+- Git Branching
+- Version Control
+- Commit History
+- GitHub Repository
+
+---
+
+## 📜 Bash Automation
+
+### Health Check Script
+
+- CPU Usage
+- Memory Usage
+- Disk Usage
+- Logged-in Users
+- Running Processes
+- Server Uptime
+
+### Apache Monitoring Script
+
+- Monitor Apache Service
+- Restart Automatically if Down
+
+### Backup Script
+
+- Compress Website
+- Timestamp Backup
+- Store Backup Locally
+
+---
+
+## 📋 Log Monitoring
+
 - System Logs
 - Apache Logs
 - SSH Logs
 - Error Monitoring
 
-### AWS Cloud
-- Virtual Private Cloud (VPC)
-- Public Subnet
-- Internet Gateway
-- Route Table
-- Security Groups
-- EC2 Ubuntu Server
-- Apache Web Server
-- Static Website Hosting
+---
 
-### Backup Solution
-- Local Backup
-- Automated Backup Script
-- Amazon S3 Backup Storage
+## ☁️ Amazon S3 (Konexa Enhancement)
+
+Although not mandatory in Module 1, Konexa extends the project by securely storing backups and log reports inside Amazon S3 for disaster recovery and long-term storage.
+
+Features:
+
+- Backup Archive Storage
+- Log Archive Storage
+- Cloud Backup Repository
 
 ---
 
-# Technology Stack
+# 💻 Frontend
+
+Konexa includes a modern cinematic dashboard built using:
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+The dashboard serves as the user interface for future DevOps modules.
+
+---
+
+# 🛠️ Technology Stack
+
+## Frontend
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+## Cloud
+
+- AWS EC2
+- Amazon S3
+- AWS VPC
+
+## Operating System
+
+- Ubuntu Linux
+
+## Web Server
+
+- Apache2
+
+## Automation
+
+- Bash Scripting
+
+## Version Control
 
 - Git
 - GitHub
-- Ubuntu Linux
-- Bash
-- Apache2
-- AWS EC2
-- AWS VPC
-- Amazon S3
 
 ---
 
-# Project Structure
+# 📁 Project Structure
 
 ```
 Konexa
 │
-├── website/
-│   ├── css/
-│   ├── js/
-│   └── images/
+├── frontend/
 │
 ├── scripts/
-│
-├── documentation/
-│
-├── aws/
+│   ├── health-check.sh
+│   ├── apache-monitor.sh
+│   ├── backup.sh
+│   └── upload-to-s3.sh
 │
 ├── backups/
 │
 ├── logs/
+│
+├── aws/
+│
+├── documentation/
 │
 ├── screenshots/
 │
@@ -117,92 +194,120 @@ Konexa
 
 ---
 
-# Product Roadmap
+# 🏗️ Architecture
 
-## Konexa v1.0 – Foundation
-- Git
-- GitHub
-- Linux
-- Bash
-- AWS
-- Apache
-- Website Hosting
-- Log Monitoring
-- S3 Backup
+```
+Developer
+      │
+      ▼
+ GitHub Repository
+      │
+      ▼
+ Ubuntu EC2
+      │
+      ▼
+ Apache Web Server
+      │
+      ▼
+ Konexa Frontend
+      │
+      ├──────────────┐
+      ▼              ▼
+ Backup Script    Log Monitor
+      │              │
+      └──────┬───────┘
+             ▼
+        Amazon S3
+```
 
 ---
 
-## Konexa v2.0 – Continuous Integration
+# 🚀 Product Roadmap
 
-Planned Features
+## ✅ Konexa v1.0
+
+- Linux Administration
+- AWS Cloud
+- Git & GitHub
+- Bash Automation
+- Apache Web Server
+- Log Monitoring
+- Amazon S3 Backup
+
+---
+
+## 🔜 Konexa v2.0
+
+Continuous Integration
 
 - Jenkins
 - CI/CD Pipeline
 - Automated Build
 - Automated Deployment
-- Pipeline Dashboard
 
 ---
 
-## Konexa v3.0 – Container Platform
+## 🔜 Konexa v3.0
 
-Planned Features
+Container Platform
 
 - Docker
 - Docker Compose
 - Docker Hub
-- Container Management
 
 ---
 
-## Konexa v4.0 – Orchestration Platform
+## 🔜 Konexa v4.0
 
-Planned Features
+Container Orchestration
 
 - Kubernetes
 - Deployments
 - Services
 - Auto Scaling
-- Cluster Management
 
 ---
 
-## Konexa v5.0 – Infrastructure Automation
+## 🔜 Konexa v5.0
 
-Planned Features
+Infrastructure Automation
 
 - Terraform
 - Ansible
 - Infrastructure as Code
-- Configuration Management
 
 ---
 
-## Konexa v6.0 – Enterprise Platform
+## 🔜 Konexa v6.0
 
-Planned Features
+Enterprise Platform
 
 - Prometheus
 - Grafana
-- Centralized Monitoring
-- Alerting
+- Monitoring
 - AI Assistant
 - Multi-Project Dashboard
-- Role Based Access Control (RBAC)
+- Role-Based Access Control (RBAC)
 
 ---
 
-# Future Vision
+# 🎯 Future Vision
 
-Konexa aims to become a centralized DevOps Operations Platform capable of managing multiple applications, cloud infrastructure, deployments, monitoring, backups, and automation from a single dashboard.
+Konexa aims to become a centralized DevOps Operations Platform capable of managing cloud infrastructure, deployments, monitoring, automation, backups, and multiple applications from a single dashboard.
 
 ---
 
-# Project Owner
+# 👨‍💻 Project Owner
 
 **Essakimuthu Konar**
 
 DevOps Engineer (Learning Project)
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
 
 ---
 

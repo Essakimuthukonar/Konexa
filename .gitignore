@@ -1,0 +1,27 @@
+# Node modules
+node_modules/
+
+# Next.js build
+.next/
+out/
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Backup files
+backups/
+
+# AWS keys
+*.pem
