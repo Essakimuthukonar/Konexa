@@ -5,6 +5,7 @@ phases:
     runtime-versions:
       nodejs: 18
     commands:
+      - cd frontend
       - npm install
 
   build:
@@ -12,5 +13,6 @@ phases:
       - npm run build
 
 artifacts:
+  base-directory: frontend/.next
   files:
     - '**/*'
