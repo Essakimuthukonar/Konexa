@@ -1,4 +1,4 @@
-# 🚀 Konexa
+# 🚀 Konexa...
 
 > **Enterprise DevOps Operations Platform**
 > **Connect • Automate • Scale**
