@@ -16,9 +16,7 @@ pipeline {
             steps {
                 echo '===== INSTALLING DEPENDENCIES ====='
 
-                dir('frontend') {
-                    sh 'npm ci'
-                }
+                sh 'npm ci'
             }
         }
 
@@ -26,9 +24,7 @@ pipeline {
             steps {
                 echo '===== BUILDING KONEXA FRONTEND ====='
 
-                dir('frontend') {
-                    sh 'npm run build'
-                }
+                sh 'npm run build'
             }
         }
 
@@ -36,15 +32,14 @@ pipeline {
             steps {
                 echo '===== RUNNING KONEXA CI VALIDATION ====='
 
-                dir('frontend') {
-                    sh '''
-                        test -f package.json
-                        test -d .next
-                        test -f next.config.mjs
+                sh '''
+                    test -f package.json
+                    test -f package-lock.json
+                    test -d .next
+                    test -f next.config.mjs
 
-                        echo "===== KONEXA CI VALIDATION PASSED ====="
-                    '''
-                }
+                    echo "===== KONEXA CI VALIDATION PASSED ====="
+                '''
             }
         }
 
@@ -56,12 +51,14 @@ pipeline {
                     rm -f konexa-frontend.tar.gz
 
                     tar -czf konexa-frontend.tar.gz \
-                        frontend/.next \
-                        frontend/public \
-                        frontend/package.json \
-                        frontend/package-lock.json \
-                        frontend/next.config.mjs
+                        .next \
+                        public \
+                        package.json \
+                        package-lock.json \
+                        next.config.mjs
                 '''
+
+                echo '===== KONEXA PACKAGE CREATED ====='
             }
         }
 
@@ -70,6 +67,8 @@ pipeline {
                 echo '===== DEPLOYING TO KONEXA SERVER ====='
 
                 sh '''
+                    set -e
+
                     chmod 600 ~/.ssh/id_ed25519
 
                     echo "===== COPYING BUILD TO KONEXA SERVER ====="
@@ -96,7 +95,7 @@ pipeline {
                         tar -xzf /tmp/konexa-frontend.tar.gz \
                             -C /home/ubuntu/konexa-frontend
 
-                        cd /home/ubuntu/konexa-frontend/frontend
+                        cd /home/ubuntu/konexa-frontend
 
                         echo "===== INSTALLING PRODUCTION DEPENDENCIES ====="
 
