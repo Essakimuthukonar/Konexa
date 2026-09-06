@@ -1,260 +1,324 @@
-
 pipeline {
 
-    agent { label 'frontend' }
+```
+agent { label 'frontend' }
 
-    environment {
+environment {
+    DOCKER_IMAGE = 'muthukonar/konexa'
+    DOCKER_TAG = "${BUILD_NUMBER}"
 
-        // Docker Hub
-        DOCKER_IMAGE = 'muthukonar/konexa'
-        DOCKER_TAG = "${BUILD_NUMBER}"
+    SERVER = 'ubuntu@10.0.1.143'
 
-        // EC2
-        SERVER = 'ubuntu@10.0.1.143'
+    DOCKER_CREDENTIALS = 'dockerhub-credentials'
+    SSH_CREDENTIALS = 'frontend-agent-ssh'
+}
 
-        // Jenkins credential IDs
-        DOCKER_CREDENTIALS = 'dockerhub-credentials'
-        SSH_CREDENTIALS = 'frontend-agent-ssh'
+stages {
+
+    stage('Clone Source Code') {
+        steps {
+            echo '===== CLONING KONEXA FROM GITHUB ====='
+
+            deleteDir()
+
+            git(
+                branch: 'konexa-v3-docker',
+                url: 'https://github.com/Essakimuthukonar/Konexa.git'
+            )
+
+            sh '''
+                echo "===== SOURCE CODE CLONED ====="
+                echo "Branch:"
+                git branch --show-current
+
+                echo "Latest Commit:"
+                git log -1 --oneline
+
+                echo "Project Files:"
+                ls -la
+            '''
+        }
     }
 
-    stages {
+    stage('Docker Build') {
+        steps {
+            echo '===== BUILDING KONEXA DOCKER IMAGE ====='
 
-        stage('Clone Source Code') {
-            steps {
-                echo '===== CLONING KONEXA FROM GITHUB ====='
+            sh '''
+                docker build \
+                    -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    -t ${DOCKER_IMAGE}:latest \
+                    .
+            '''
+        }
+    }
 
-                deleteDir()
+    stage('Docker Image Validation') {
+        steps {
+            echo '===== VALIDATING DOCKER IMAGE ====='
 
-                git(
-                    branch: 'konexa-v3-docker',
-                    url: 'https://github.com/Essakimuthukonar/Konexa.git'
+            sh '''
+                echo "===== DOCKER IMAGES ====="
+                docker images ${DOCKER_IMAGE}
+
+                echo "===== DOCKER IMAGE INSPECT ====="
+                docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
+
+                echo "===== IMAGE VALIDATION PASSED ====="
+            '''
+        }
+    }
+
+    stage('Login to Docker Hub') {
+        steps {
+            echo '===== LOGGING IN TO DOCKER HUB ====='
+
+            withCredentials([
+                usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIALS}",
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
                 )
+            ]) {
 
                 sh '''
-                    echo "===== SOURCE CODE CLONED ====="
-                    git branch --show-current
-                    git log -1 --oneline
-                    ls -la
+                    echo "$DOCKER_PASSWORD" | \
+                    docker login \
+                    --username "$DOCKER_USERNAME" \
+                    --password-stdin
                 '''
+
             }
         }
+    }
 
-        stage('Docker Build') {
-            steps {
-                echo '===== BUILDING KONEXA DOCKER IMAGE ====='
+    stage('Push Image to Docker Hub') {
+        steps {
+            echo '===== PUSHING KONEXA IMAGE TO DOCKER HUB ====='
+
+            sh '''
+                echo "===== PUSHING VERSIONED IMAGE ====="
+
+                docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+
+                echo "===== PUSHING LATEST IMAGE ====="
+
+                docker push ${DOCKER_IMAGE}:latest
+
+                echo "===== DOCKER HUB PUSH SUCCESSFUL ====="
+            '''
+        }
+    }
+
+    stage('Prepare EC2') {
+        steps {
+            echo '===== CHECKING EC2 DOCKER ENVIRONMENT ====='
+
+            sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
 
                 sh '''
-                    docker build \
-                        -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                        -t ${DOCKER_IMAGE}:latest \
-                        .
-                '''
+                    ssh \
+                        -o StrictHostKeyChecking=no \
+                        ${SERVER} << 'EOF'
+
+                        set -e
+
+                        echo "=========================================="
+                        echo "        EC2 CONNECTION SUCCESSFUL"
+                        echo "=========================================="
+
+                        echo "===== DOCKER VERSION ====="
+                        docker --version
+
+                        echo "===== DOCKER SERVICE STATUS ====="
+                        sudo systemctl is-active docker
+
+                        echo "===== DOCKER ACCESS TEST ====="
+                        docker ps
+
+                        echo "===== PORT 3000 CHECK ====="
+                        sudo ss -lntp | grep :3000 || true
+
+                        echo "===== EC2 PREPARATION COMPLETE ====="
+```
+
+EOF
+'''
+
+```
             }
         }
+    }
 
-        stage('Docker Image Validation') {
-            steps {
-                echo '===== VALIDATING DOCKER IMAGE ====='
+    stage('Deploy to EC2') {
+        steps {
+            echo '===== DEPLOYING KONEXA TO EC2 ====='
 
-                sh '''
-                    docker images ${DOCKER_IMAGE}
-
-                    docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
-
-                    echo "===== DOCKER IMAGE VALIDATION PASSED ====="
-                '''
-            }
-        }
-
-        stage('Login to Docker Hub') {
-            steps {
-                echo '===== LOGGING IN TO DOCKER HUB ====='
-
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: "${DOCKER_CREDENTIALS}",
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-
-                    sh '''
-                        echo "$DOCKER_PASSWORD" | \
-                        docker login \
-                        --username "$DOCKER_USERNAME" \
-                        --password-stdin
-                    '''
-                }
-            }
-        }
-
-        stage('Push Image to Docker Hub') {
-            steps {
-                echo '===== PUSHING KONEXA IMAGE TO DOCKER HUB ====='
-
-                sh '''
-                    docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    docker push ${DOCKER_IMAGE}:latest
-
-                    echo "===== DOCKER HUB PUSH SUCCESSFUL ====="
-                '''
-            }
-        }
-
-        stage('Prepare EC2') {
-            steps {
-                echo '===== CHECKING EC2 DOCKER ENVIRONMENT ====='
+            withCredentials([
+                usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIALS}",
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
+                )
+            ]) {
 
                 sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
 
                     sh '''
                         ssh \
                             -o StrictHostKeyChecking=no \
-                            ${SERVER} << 'EOF'
+                            ${SERVER} \
+                            "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOF'
 
                             set -e
 
-                            echo "===== EC2 CONNECTED ====="
+                            DOCKER_IMAGE="muthukonar/konexa"
 
-                            echo "===== DOCKER VERSION ====="
-                            docker --version
+                            echo "=========================================="
+                            echo "       KONEXA EC2 DEPLOYMENT"
+                            echo "=========================================="
 
-                            echo "===== DOCKER STATUS ====="
-                            sudo systemctl is-active docker
+                            echo "===== DOCKER HUB LOGIN ====="
 
-                            echo "===== DOCKER ACCESS TEST ====="
-                            docker ps
+                            echo "$DOCKER_PASSWORD" | \
+                            docker login \
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
 
-EOF
-                    '''
-                }
-            }
-        }
+                            echo "===== PULLING LATEST KONEXA IMAGE ====="
 
-        stage('Deploy to EC2') {
-            steps {
-                echo '===== DEPLOYING KONEXA TO EC2 ====='
+                            docker pull "$DOCKER_IMAGE:latest"
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: "${DOCKER_CREDENTIALS}",
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
+                            echo "===== STOPPING OLD KONEXA CONTAINER ====="
 
-                    sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+                            docker rm -f konexa-v3 2>/dev/null || true
 
-                        sh '''
-                            ssh \
-                                -o StrictHostKeyChecking=no \
-                                ${SERVER} \
-                                "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOF'
+                            echo "===== STARTING NEW KONEXA CONTAINER ====="
 
-                                set -e
+                            docker run -d \
+                                --name konexa-v3 \
+                                -p 3000:3000 \
+                                --restart unless-stopped \
+                                "$DOCKER_IMAGE:latest"
 
-                                echo "===== DOCKER HUB LOGIN ON EC2 ====="
+                            echo "===== WAITING FOR APPLICATION ====="
 
-                                echo "$DOCKER_PASSWORD" | \
-                                docker login \
-                                --username "$DOCKER_USERNAME" \
-                                --password-stdin
+                            sleep 10
 
-                                echo "===== PULLING LATEST KONEXA IMAGE ====="
+                            echo "===== CONTAINER STATUS ====="
 
-                                docker pull ${DOCKER_IMAGE}:latest
+                            docker ps --filter "name=konexa-v3"
 
-                                echo "===== STOPPING OLD KONEXA CONTAINER ====="
+                            echo "===== APPLICATION HEALTH CHECK ====="
 
-                                docker rm -f konexa-v3 2>/dev/null || true
+                            curl -f http://localhost:3000
 
-                                echo "===== STARTING NEW KONEXA CONTAINER ====="
-
-                                docker run -d \
-                                    --name konexa-v3 \
-                                    -p 3000:3000 \
-                                    --restart unless-stopped \
-                                    ${DOCKER_IMAGE}:latest
-
-                                echo "===== WAITING FOR APPLICATION ====="
-
-                                sleep 10
-
-                                echo "===== RUNNING CONTAINER ====="
-
-                                docker ps --filter name=konexa-v3
-
-                                echo "===== KONEXA DEPLOYMENT COMPLETED ====="
+                            echo ""
+                            echo "=========================================="
+                            echo "     KONEXA DEPLOYMENT SUCCESSFUL"
+                            echo "=========================================="
+```
 
 EOF
-                        '''
-                    }
-                }
-            }
-        }
+'''
 
-        stage('Verify Deployment') {
-            steps {
-                echo '===== VERIFYING KONEXA APPLICATION ====='
-
-                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
-
-                    sh '''
-                        ssh \
-                            -o StrictHostKeyChecking=no \
-                            ${SERVER} \
-                            "docker ps --filter name=konexa-v3 && curl -f http://localhost:3000"
-                    '''
-
-                    echo '===== KONEXA APPLICATION IS RUNNING ====='
-                }
-            }
-        }
-
-        stage('Docker Cleanup') {
-            steps {
-                echo '===== CLEANING UNUSED DOCKER IMAGES ====='
-
-                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
-
-                    sh '''
-                        ssh \
-                            -o StrictHostKeyChecking=no \
-                            ${SERVER} \
-                            "docker image prune -f"
-                    '''
+```
                 }
             }
         }
     }
 
-    post {
+    stage('Verify Deployment') {
+        steps {
+            echo '===== VERIFYING KONEXA APPLICATION ====='
 
-        success {
-            echo '''
-            ==========================================
-            KONEXA CI/CD PIPELINE SUCCESS
-            ==========================================
-            GitHub -> Jenkins -> Docker Build
-                    -> Docker Hub -> EC2
-                    -> Port 3000
-            ==========================================
-            '''
+            sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
+                sh '''
+                    ssh \
+                        -o StrictHostKeyChecking=no \
+                        ${SERVER} \
+                        "echo '===== CONTAINER ====='; \
+                         docker ps --filter 'name=konexa-v3'; \
+                         echo '===== PORT ====='; \
+                         docker port konexa-v3; \
+                         echo '===== HTTP HEALTH CHECK ====='; \
+                         curl -f http://localhost:3000"
+                '''
+
+                echo '===== KONEXA APPLICATION IS RUNNING ON PORT 3000 ====='
+            }
         }
+    }
 
-        failure {
-            echo '''
-            ==========================================
-            KONEXA CI/CD PIPELINE FAILED
-            ==========================================
-            Check the failed stage in Jenkins Console.
-            ==========================================
-            '''
-        }
+    stage('Docker Cleanup') {
+        steps {
+            echo '===== CLEANING UNUSED DOCKER RESOURCES ====='
 
-        always {
-            sh 'docker logout || true'
+            sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
+                sh '''
+                    ssh \
+                        -o StrictHostKeyChecking=no \
+                        ${SERVER} \
+                        "docker image prune -f"
+                '''
+            }
         }
     }
 }
 
+post {
+
+    success {
+        echo '''
+        ==============================================
+             KONEXA CI/CD PIPELINE SUCCESS
+        ==============================================
+
+        GitHub
+            |
+            v
+        Jenkins
+            |
+            v
+        Docker Build
+            |
+            v
+        Docker Hub
+            |
+            v
+        EC2
+            |
+            v
+        Docker Container
+            |
+            v
+        Port 3000
+            |
+            v
+        KONEXA APPLICATION
+
+        ==============================================
+        '''
+    }
+
+    failure {
+        echo '''
+        ==============================================
+             KONEXA CI/CD PIPELINE FAILED
+        ==============================================
+
+        Check the failed stage in Jenkins Console.
+
+        ==============================================
+        '''
+    }
+
+    always {
+        sh 'docker logout || true'
+    }
+}
+```
+
+}
