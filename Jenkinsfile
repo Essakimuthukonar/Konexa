@@ -14,7 +14,7 @@ pipeline {
 
         // Jenkins credential IDs
         DOCKER_CREDENTIALS = 'dockerhub-credentials'
-        SSH_CREDENTIALS = 'konexa-ec2-ssh'
+        SSH_CREDENTIALS = 'frontend-agent-ssh'
     }
 
     stages {
