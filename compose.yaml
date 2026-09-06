@@ -1,0 +1,29 @@
+services:
+  konexa:
+    build: .
+    container_name: konexa-v3
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+    networks:
+      - konexa-network
+
+  database:
+    image: mysql:8.0
+    container_name: konexa-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: konexa_root
+      MYSQL_DATABASE: konexa
+      MYSQL_USER: konexa
+      MYSQL_PASSWORD: konexa_password
+    volumes:
+      - konexa-db-data:/var/lib/mysql
+    networks:
+      - konexa-network
+
+networks:
+  konexa-network:
+
+volumes:
+  konexa-db-data:
