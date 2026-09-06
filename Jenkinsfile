@@ -1,4 +1,4 @@
-```groovy
+
 pipeline {
 
     agent { label 'frontend' }
@@ -257,4 +257,4 @@ EOF
         }
     }
 }
-```
+
