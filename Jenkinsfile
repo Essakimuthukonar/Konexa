@@ -3,21 +3,35 @@ pipeline {
     agent { label 'frontend' }
 
     environment {
+        // Docker Hub
         DOCKER_IMAGE = 'muthukonar/konexa'
         DOCKER_TAG = "${BUILD_NUMBER}"
-        DOCKER_LATEST = 'latest'
 
+        // Deployment server
         SERVER = 'ubuntu@10.0.1.143'
+        PROJECT_DIR = '/home/ubuntu/konexa-new'
+
+        // Jenkins credentials
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+        SSH_CREDENTIALS = 'konexa-ec2-ssh'
     }
 
     stages {
 
         stage('Clone Source Code') {
             steps {
-                echo '===== CLONING KONEXA SOURCE CODE ====='
+                echo '===== CLONING KONEXA FROM GITHUB ====='
+
+                deleteDir()
 
                 git branch: 'main',
                     url: 'https://github.com/Essakimuthukonar/Konexa.git'
+
+                sh '''
+                    echo "===== SOURCE CODE CLONED SUCCESSFULLY ====="
+                    git log -1 --oneline
+                    ls -la
+                '''
             }
         }
 
@@ -28,7 +42,7 @@ pipeline {
                 sh '''
                     docker build \
                         -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                        -t ${DOCKER_IMAGE}:${DOCKER_LATEST} \
+                        -t ${DOCKER_IMAGE}:latest \
                         .
                 '''
             }
@@ -39,10 +53,11 @@ pipeline {
                 echo '===== VALIDATING DOCKER IMAGE ====='
 
                 sh '''
-                    docker images ${DOCKER_IMAGE}
-                    docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
+                    docker image inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
 
-                    echo "===== DOCKER IMAGE VALIDATION PASSED ====="
+                    echo "===== IMAGE VALIDATION PASSED ====="
+
+                    docker images ${DOCKER_IMAGE}
                 '''
             }
         }
@@ -53,7 +68,7 @@ pipeline {
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
+                        credentialsId: "${DOCKER_CREDENTIALS}",
                         usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -61,73 +76,109 @@ pipeline {
                     sh '''
                         echo "$DOCKER_PASSWORD" | \
                         docker login \
-                        --username "$DOCKER_USERNAME" \
-                        --password-stdin
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
                     '''
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push Image to Docker Hub') {
             steps {
                 echo '===== PUSHING KONEXA IMAGE TO DOCKER HUB ====='
 
                 sh '''
                     docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    docker push ${DOCKER_IMAGE}:${DOCKER_LATEST}
+                    docker push ${DOCKER_IMAGE}:latest
                 '''
             }
         }
 
-        stage('Deploy to EC2') {
+        stage('Prepare EC2') {
             steps {
-                echo '===== DEPLOYING KONEXA DOCKER CONTAINER ====='
+                echo '===== PREPARING KONEXA EC2 SERVER ====='
+
+                sshagent(credentials: "${SSH_CREDENTIALS}") {
+                    sh '''
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} << 'EOF'
+
+                            set -e
+
+                            echo "===== CHECKING DOCKER ====="
+
+                            docker --version
+
+                            echo "===== CREATING PROJECT DIRECTORY ====="
+
+                            mkdir -p ${PROJECT_DIR}
+
+                            echo "===== EC2 PREPARATION COMPLETE ====="
+
+EOF
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy Docker Compose') {
+            steps {
+                echo '===== DEPLOYING KONEXA WITH DOCKER COMPOSE ====='
 
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
+                        credentialsId: "${DOCKER_CREDENTIALS}",
                         usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-                    sh '''
-                        ssh -i ~/.ssh/id_ed25519 \
-                            -o StrictHostKeyChecking=no \
-                            ${SERVER} << EOF
 
-                            set -e
+                    sshagent(credentials: "${SSH_CREDENTIALS}") {
 
-                            echo "===== DOCKER HUB LOGIN ====="
+                        sh '''
+                            ssh \
+                                -o StrictHostKeyChecking=no \
+                                ${SERVER} << EOF
 
-                            echo "$DOCKER_PASSWORD" | \
-                            docker login \
-                            --username "$DOCKER_USERNAME" \
-                            --password-stdin
+                                set -e
 
-                            echo "===== PULLING LATEST KONEXA IMAGE ====="
+                                echo "===== LOGGING IN TO DOCKER HUB ====="
 
-                            docker pull ${DOCKER_IMAGE}:${DOCKER_LATEST}
+                                echo "$DOCKER_PASSWORD" | \
+                                docker login \
+                                    --username "$DOCKER_USERNAME" \
+                                    --password-stdin
 
-                            echo "===== STOPPING OLD KONEXA CONTAINER ====="
+                                echo "===== PULLING KONEXA IMAGE ====="
 
-                            docker rm -f konexa-v3 2>/dev/null || true
+                                docker pull ${DOCKER_IMAGE}:latest
 
-                            echo "===== STARTING NEW KONEXA CONTAINER ====="
+                                echo "===== CREATING DOCKER NETWORK ====="
 
-                            docker run -d \
-                                --name konexa-v3 \
-                                -p 3000:3000 \
-                                --restart unless-stopped \
-                                ${DOCKER_IMAGE}:${DOCKER_LATEST}
+                                docker network inspect konexa-network >/dev/null 2>&1 || \
+                                docker network create konexa-network
 
-                            echo "===== REMOVING UNUSED IMAGES ====="
+                                echo "===== STOPPING OLD KONEXA CONTAINER ====="
 
-                            docker image prune -f
+                                docker rm -f konexa-v3 2>/dev/null || true
 
-                            echo "===== KONEXA DOCKER DEPLOYMENT SUCCESS ====="
+                                echo "===== STARTING KONEXA CONTAINER ====="
+
+                                docker run -d \
+                                    --name konexa-v3 \
+                                    --network konexa-network \
+                                    -p 3000:3000 \
+                                    --restart unless-stopped \
+                                    ${DOCKER_IMAGE}:latest
+
+                                echo "===== KONEXA CONTAINER STARTED ====="
+
+                                docker ps --filter name=konexa-v3
 
 EOF
-                    '''
+                        '''
+                    }
                 }
             }
         }
@@ -136,23 +187,47 @@ EOF
             steps {
                 echo '===== VERIFYING KONEXA DEPLOYMENT ====='
 
-                sh '''
-                    ssh -i ~/.ssh/id_ed25519 \
-                        -o StrictHostKeyChecking=no \
-                        ${SERVER} \
-                        "docker ps --filter name=konexa-v3 && curl -f http://localhost:3000"
-                '''
+                sshagent(credentials: "${SSH_CREDENTIALS}") {
+                    sh '''
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} \
+                            "docker ps --filter name=konexa-v3 && curl -f http://localhost:3000"
+
+                        echo "===== KONEXA DEPLOYMENT VERIFIED ====="
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Cleanup') {
+            steps {
+                echo '===== CLEANING UNUSED DOCKER IMAGES ====='
+
+                sshagent(credentials: "${SSH_CREDENTIALS}") {
+                    sh '''
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} \
+                            "docker image prune -f"
+                    '''
+                }
             }
         }
     }
 
     post {
+
         success {
-            echo '===== 🚀 KONEXA DOCKER CI/CD PIPELINE SUCCESS ====='
+            echo '=============================================='
+            echo '🚀 KONEXA DOCKER CI/CD PIPELINE SUCCESS'
+            echo '=============================================='
         }
 
         failure {
-            echo '===== ❌ KONEXA DOCKER CI/CD PIPELINE FAILED ====='
+            echo '=============================================='
+            echo '❌ KONEXA DOCKER CI/CD PIPELINE FAILED'
+            echo '=============================================='
         }
 
         always {
