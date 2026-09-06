@@ -1,5 +1,14 @@
+```groovy
 pipeline {
     agent { label 'frontend' }
+
+    environment {
+        DOCKER_IMAGE = 'muthukonar/konexa'
+        DOCKER_TAG = "${BUILD_NUMBER}"
+        DOCKER_LATEST = 'latest'
+
+        SERVER = 'ubuntu@10.0.1.143'
+    }
 
     stages {
 
@@ -12,109 +21,114 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Docker Build') {
             steps {
-                echo '===== INSTALLING DEPENDENCIES ====='
-
-                sh 'npm ci'
-            }
-        }
-
-        stage('Build Application') {
-            steps {
-                echo '===== BUILDING KONEXA FRONTEND ====='
-
-                sh 'npm run build'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                echo '===== RUNNING KONEXA CI VALIDATION ====='
+                echo '===== BUILDING KONEXA DOCKER IMAGE ====='
 
                 sh '''
-                    test -f package.json
-                    test -f package-lock.json
-                    test -d .next
-                    test -f next.config.mjs
-
-                    echo "===== KONEXA CI VALIDATION PASSED ====="
+                    docker build \
+                        -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                        -t ${DOCKER_IMAGE}:${DOCKER_LATEST} \
+                        .
                 '''
             }
         }
 
-        stage('Package Application') {
+        stage('Docker Image Validation') {
             steps {
-                echo '===== PACKAGING KONEXA APPLICATION ====='
+                echo '===== VALIDATING DOCKER IMAGE ====='
 
                 sh '''
-                    rm -f konexa-frontend.tar.gz
+                    docker images ${DOCKER_IMAGE}
+                    docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
 
-                    tar -czf konexa-frontend.tar.gz \
-                        .next \
-                        public \
-                        package.json \
-                        package-lock.json \
-                        next.config.mjs
+                    echo "===== DOCKER IMAGE VALIDATION PASSED ====="
                 '''
-
-                echo '===== KONEXA PACKAGE CREATED ====='
             }
         }
 
-        stage('Deploy to Konexa Server') {
+        stage('Login to Docker Hub') {
             steps {
-                echo '===== DEPLOYING TO KONEXA SERVER ====='
+                echo '===== LOGGING IN TO DOCKER HUB ====='
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | \
+                        docker login \
+                        --username "$DOCKER_USERNAME" \
+                        --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo '===== PUSHING KONEXA IMAGE TO DOCKER HUB ====='
 
                 sh '''
-                    set -e
+                    docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                    docker push ${DOCKER_IMAGE}:${DOCKER_LATEST}
+                '''
+            }
+        }
 
-                    chmod 600 ~/.ssh/id_ed25519
+        stage('Deploy to EC2') {
+            steps {
+                echo '===== DEPLOYING KONEXA DOCKER CONTAINER ====='
 
-                    echo "===== COPYING BUILD TO KONEXA SERVER ====="
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        ssh -i ~/.ssh/id_ed25519 \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} << EOF
 
-                    scp -i ~/.ssh/id_ed25519 \
-                        -o StrictHostKeyChecking=no \
-                        konexa-frontend.tar.gz \
-                        ubuntu@10.0.1.143:/tmp/konexa-frontend.tar.gz
+                            set -e
 
-                    echo "===== CONNECTING TO KONEXA SERVER ====="
+                            echo "===== DOCKER HUB LOGIN ====="
 
-                    ssh -i ~/.ssh/id_ed25519 \
-                        -o StrictHostKeyChecking=no \
-                        ubuntu@10.0.1.143 << 'EOF'
+                            echo "$DOCKER_PASSWORD" | \
+                            docker login \
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
 
-                        set -e
+                            echo "===== PULLING LATEST KONEXA IMAGE ====="
 
-                        echo "===== DEPLOYING KONEXA FRONTEND ====="
+                            docker pull ${DOCKER_IMAGE}:${DOCKER_LATEST}
 
-                        mkdir -p /home/ubuntu/konexa-frontend
+                            echo "===== STOPPING OLD KONEXA CONTAINER ====="
 
-                        rm -rf /home/ubuntu/konexa-frontend/*
+                            docker rm -f konexa-v3 2>/dev/null || true
 
-                        tar -xzf /tmp/konexa-frontend.tar.gz \
-                            -C /home/ubuntu/konexa-frontend
+                            echo "===== STARTING NEW KONEXA CONTAINER ====="
 
-                        cd /home/ubuntu/konexa-frontend
+                            docker run -d \
+                                --name konexa-v3 \
+                                -p 3000:3000 \
+                                --restart unless-stopped \
+                                ${DOCKER_IMAGE}:${DOCKER_LATEST}
 
-                        echo "===== INSTALLING PRODUCTION DEPENDENCIES ====="
+                            echo "===== REMOVING UNUSED IMAGES ====="
 
-                        npm ci --omit=dev
+                            docker image prune -f
 
-                        echo "===== STARTING KONEXA WITH PM2 ====="
-
-                        pm2 delete konexa-frontend || true
-
-                        pm2 start npm \
-                            --name konexa-frontend \
-                            -- start
-
-                        pm2 save
-
-                        echo "===== KONEXA FRONTEND DEPLOYMENT SUCCESS ====="
+                            echo "===== KONEXA DOCKER DEPLOYMENT SUCCESS ====="
 
 EOF
-                '''
+                    '''
+                }
             }
         }
 
@@ -125,30 +139,25 @@ EOF
                 sh '''
                     ssh -i ~/.ssh/id_ed25519 \
                         -o StrictHostKeyChecking=no \
-                        ubuntu@10.0.1.143 \
-                        "pm2 status && curl -f http://localhost:3000"
+                        ${SERVER} \
+                        "docker ps --filter name=konexa-v3 && curl -f http://localhost:3000"
                 '''
-            }
-        }
-
-        stage('Deliver Artifact') {
-            steps {
-                echo '===== ARCHIVING BUILD ARTIFACT ====='
-
-                archiveArtifacts \
-                    artifacts: 'konexa-frontend.tar.gz',
-                    fingerprint: true
             }
         }
     }
 
     post {
         success {
-            echo '===== 🚀 KONEXA CI/CD PIPELINE SUCCESS ====='
+            echo '===== 🚀 KONEXA DOCKER CI/CD PIPELINE SUCCESS ====='
         }
 
         failure {
-            echo '===== ❌ KONEXA CI/CD PIPELINE FAILED ====='
+            echo '===== ❌ KONEXA DOCKER CI/CD PIPELINE FAILED ====='
+        }
+
+        always {
+            sh 'docker logout || true'
         }
     }
 }
+```
