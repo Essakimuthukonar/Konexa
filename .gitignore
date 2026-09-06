@@ -13,3 +13,22 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+# Docker
+*.log
+docker-compose.override.yml
+
+# Local/backup files
+frontend/
+*-backup-*
+*.backup*
+backup/
+backups/
+
+# Local environment/config
+.env
+.env.*
+!.env.example
+config/*.local
+
+# Generated documentation/screenshots
+*.tmp

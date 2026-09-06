@@ -1,0 +1,4 @@
+MYSQL_ROOT_PASSWORD=konexa_root
+MYSQL_DATABASE=konexa
+MYSQL_USER=konexa
+MYSQL_PASSWORD=konexa_password
