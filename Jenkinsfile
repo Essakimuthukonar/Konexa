@@ -1,6 +1,5 @@
 pipeline {
 
-```
 agent { label 'frontend' }
 
 environment {
@@ -319,6 +318,6 @@ post {
         sh 'docker logout || true'
     }
 }
-```
+
 
 }
