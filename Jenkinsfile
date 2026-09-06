@@ -139,12 +139,10 @@ stages {
                         sudo ss -lntp | grep :3000 || true
 
                         echo "===== EC2 PREPARATION COMPLETE ====="
-```
 
 EOF
 '''
 
-```
             }
         }
     }
@@ -216,12 +214,10 @@ EOF
                             echo "=========================================="
                             echo "     KONEXA DEPLOYMENT SUCCESSFUL"
                             echo "=========================================="
-```
 
 EOF
 '''
 
-```
                 }
             }
         }
@@ -318,6 +314,5 @@ post {
         sh 'docker logout || true'
     }
 }
-
 
 }
