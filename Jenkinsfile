@@ -1,17 +1,18 @@
 ```groovy
 pipeline {
+
     agent { label 'frontend' }
 
     environment {
+
         // Docker Hub
         DOCKER_IMAGE = 'muthukonar/konexa'
         DOCKER_TAG = "${BUILD_NUMBER}"
 
-        // Deployment server
+        // EC2
         SERVER = 'ubuntu@10.0.1.143'
-        PROJECT_DIR = '/home/ubuntu/konexa-new'
 
-        // Jenkins credentials
+        // Jenkins credential IDs
         DOCKER_CREDENTIALS = 'dockerhub-credentials'
         SSH_CREDENTIALS = 'konexa-ec2-ssh'
     }
@@ -24,11 +25,14 @@ pipeline {
 
                 deleteDir()
 
-                git branch: 'main',
+                git(
+                    branch: 'konexa-v3-docker',
                     url: 'https://github.com/Essakimuthukonar/Konexa.git'
+                )
 
                 sh '''
-                    echo "===== SOURCE CODE CLONED SUCCESSFULLY ====="
+                    echo "===== SOURCE CODE CLONED ====="
+                    git branch --show-current
                     git log -1 --oneline
                     ls -la
                 '''
@@ -53,11 +57,11 @@ pipeline {
                 echo '===== VALIDATING DOCKER IMAGE ====='
 
                 sh '''
-                    docker image inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
-
-                    echo "===== IMAGE VALIDATION PASSED ====="
-
                     docker images ${DOCKER_IMAGE}
+
+                    docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
+
+                    echo "===== DOCKER IMAGE VALIDATION PASSED ====="
                 '''
             }
         }
@@ -73,11 +77,12 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
+
                     sh '''
                         echo "$DOCKER_PASSWORD" | \
                         docker login \
-                            --username "$DOCKER_USERNAME" \
-                            --password-stdin
+                        --username "$DOCKER_USERNAME" \
+                        --password-stdin
                     '''
                 }
             }
@@ -90,15 +95,18 @@ pipeline {
                 sh '''
                     docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
                     docker push ${DOCKER_IMAGE}:latest
+
+                    echo "===== DOCKER HUB PUSH SUCCESSFUL ====="
                 '''
             }
         }
 
         stage('Prepare EC2') {
             steps {
-                echo '===== PREPARING KONEXA EC2 SERVER ====='
+                echo '===== CHECKING EC2 DOCKER ENVIRONMENT ====='
 
-                sshagent(credentials: "${SSH_CREDENTIALS}") {
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
                     sh '''
                         ssh \
                             -o StrictHostKeyChecking=no \
@@ -106,15 +114,16 @@ pipeline {
 
                             set -e
 
-                            echo "===== CHECKING DOCKER ====="
+                            echo "===== EC2 CONNECTED ====="
 
+                            echo "===== DOCKER VERSION ====="
                             docker --version
 
-                            echo "===== CREATING PROJECT DIRECTORY ====="
+                            echo "===== DOCKER STATUS ====="
+                            sudo systemctl is-active docker
 
-                            mkdir -p ${PROJECT_DIR}
-
-                            echo "===== EC2 PREPARATION COMPLETE ====="
+                            echo "===== DOCKER ACCESS TEST ====="
+                            docker ps
 
 EOF
                     '''
@@ -122,9 +131,9 @@ EOF
             }
         }
 
-        stage('Deploy Docker Compose') {
+        stage('Deploy to EC2') {
             steps {
-                echo '===== DEPLOYING KONEXA WITH DOCKER COMPOSE ====='
+                echo '===== DEPLOYING KONEXA TO EC2 ====='
 
                 withCredentials([
                     usernamePassword(
@@ -134,47 +143,48 @@ EOF
                     )
                 ]) {
 
-                    sshagent(credentials: "${SSH_CREDENTIALS}") {
+                    sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
 
                         sh '''
                             ssh \
                                 -o StrictHostKeyChecking=no \
-                                ${SERVER} << EOF
+                                ${SERVER} \
+                                "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOF'
 
                                 set -e
 
-                                echo "===== LOGGING IN TO DOCKER HUB ====="
+                                echo "===== DOCKER HUB LOGIN ON EC2 ====="
 
                                 echo "$DOCKER_PASSWORD" | \
                                 docker login \
-                                    --username "$DOCKER_USERNAME" \
-                                    --password-stdin
+                                --username "$DOCKER_USERNAME" \
+                                --password-stdin
 
-                                echo "===== PULLING KONEXA IMAGE ====="
+                                echo "===== PULLING LATEST KONEXA IMAGE ====="
 
                                 docker pull ${DOCKER_IMAGE}:latest
-
-                                echo "===== CREATING DOCKER NETWORK ====="
-
-                                docker network inspect konexa-network >/dev/null 2>&1 || \
-                                docker network create konexa-network
 
                                 echo "===== STOPPING OLD KONEXA CONTAINER ====="
 
                                 docker rm -f konexa-v3 2>/dev/null || true
 
-                                echo "===== STARTING KONEXA CONTAINER ====="
+                                echo "===== STARTING NEW KONEXA CONTAINER ====="
 
                                 docker run -d \
                                     --name konexa-v3 \
-                                    --network konexa-network \
                                     -p 3000:3000 \
                                     --restart unless-stopped \
                                     ${DOCKER_IMAGE}:latest
 
-                                echo "===== KONEXA CONTAINER STARTED ====="
+                                echo "===== WAITING FOR APPLICATION ====="
+
+                                sleep 10
+
+                                echo "===== RUNNING CONTAINER ====="
 
                                 docker ps --filter name=konexa-v3
+
+                                echo "===== KONEXA DEPLOYMENT COMPLETED ====="
 
 EOF
                         '''
@@ -185,17 +195,18 @@ EOF
 
         stage('Verify Deployment') {
             steps {
-                echo '===== VERIFYING KONEXA DEPLOYMENT ====='
+                echo '===== VERIFYING KONEXA APPLICATION ====='
 
-                sshagent(credentials: "${SSH_CREDENTIALS}") {
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
                     sh '''
                         ssh \
                             -o StrictHostKeyChecking=no \
                             ${SERVER} \
                             "docker ps --filter name=konexa-v3 && curl -f http://localhost:3000"
-
-                        echo "===== KONEXA DEPLOYMENT VERIFIED ====="
                     '''
+
+                    echo '===== KONEXA APPLICATION IS RUNNING ====='
                 }
             }
         }
@@ -204,7 +215,8 @@ EOF
             steps {
                 echo '===== CLEANING UNUSED DOCKER IMAGES ====='
 
-                sshagent(credentials: "${SSH_CREDENTIALS}") {
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
                     sh '''
                         ssh \
                             -o StrictHostKeyChecking=no \
@@ -219,15 +231,25 @@ EOF
     post {
 
         success {
-            echo '=============================================='
-            echo '🚀 KONEXA DOCKER CI/CD PIPELINE SUCCESS'
-            echo '=============================================='
+            echo '''
+            ==========================================
+            KONEXA CI/CD PIPELINE SUCCESS
+            ==========================================
+            GitHub -> Jenkins -> Docker Build
+                    -> Docker Hub -> EC2
+                    -> Port 3000
+            ==========================================
+            '''
         }
 
         failure {
-            echo '=============================================='
-            echo '❌ KONEXA DOCKER CI/CD PIPELINE FAILED'
-            echo '=============================================='
+            echo '''
+            ==========================================
+            KONEXA CI/CD PIPELINE FAILED
+            ==========================================
+            Check the failed stage in Jenkins Console.
+            ==========================================
+            '''
         }
 
         always {
