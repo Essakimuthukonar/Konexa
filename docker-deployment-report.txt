@@ -1,0 +1,1092 @@
+============================================================
+KONEXA – DOCKER CONTAINERIZATION AND DEPLOYMENT
+===============================================
+
+Project Title:
+Containerizing and Deploying OpsMate Service Using Docker and AWS
+
+Project:
+Konexa – Enterprise DevOps Operations Platform
+
+Branch:
+konexa-v3-docker
+
+Docker Hub Repository:
+muthukonar/konexa
+
+AWS Region:
+ap-south-1 (Mumbai)
+
+Application Port:
+3000
+
+Deployment Platform:
+AWS EC2
+
+CI/CD:
+Jenkins
+
+Source Code:
+GitHub
+
+============================================================
+
+1. PROJECT OVERVIEW
+   ============================================================
+
+Konexa is an enterprise DevOps operations platform developed to
+provide centralized DevOps and infrastructure management capabilities.
+
+For this project, the Konexa application was containerized using
+Docker and deployed on an AWS EC2 instance.
+
+The project demonstrates:
+
+* Docker containerization
+* Docker image creation
+* Docker container management
+* Docker Compose
+* MySQL containerization
+* Docker networking
+* Docker volumes
+* Docker Hub image publishing
+* Jenkins CI/CD
+* AWS EC2 deployment
+* Application health verification
+* Docker troubleshooting
+* Container lifecycle management
+
+============================================================
+2. CONTAINERIZATION
+===================
+
+Containerization is the process of packaging an application together
+with its runtime, dependencies, libraries and configuration into a
+portable container.
+
+Instead of installing Node.js and application dependencies directly
+on the EC2 server, the Konexa application runs inside a Docker
+container.
+
+Benefits:
+
+1. Consistent application environment
+2. Easy deployment
+3. Portability
+4. Faster application startup
+5. Dependency isolation
+6. Easier scaling
+7. Simplified CI/CD
+8. Easy rollback using image tags
+
+============================================================
+3. VIRTUALIZATION VS CONTAINERIZATION
+=====================================
+
+Virtualization:
+
+Hardware
+|
+Hypervisor
+|
+-
+
+## | VM | VM | VM |
+
+Each VM contains:
+
+* Operating System
+* Libraries
+* Application
+
+Containerization:
+
+Hardware
+|
+Operating System
+|
+Docker Engine
+|
+-
+
+## | Container | Container |
+
+Each container contains:
+
+* Application
+* Dependencies
+* Runtime
+
+Virtual machines require a complete guest operating system.
+
+Containers share the host operating system kernel and are therefore
+lighter and faster.
+
+============================================================
+4. DOCKER ARCHITECTURE
+======================
+
+The main Docker components are:
+
+1. Docker Client
+2. Docker Host
+3. Docker Engine / Docker Daemon
+4. Docker Images
+5. Docker Containers
+6. Docker Registry
+
+Architecture:
+
+Developer
+|
+v
+Docker Client
+|
+v
+Docker Engine
+|
++----------------+
+|                |
+v                v
+Docker Image     Container
+|
+v
+Konexa Application
+
+Docker Hub is used as the remote Docker image registry.
+
+============================================================
+5. DOCKER INSTALLATION
+======================
+
+Docker was installed on the Ubuntu AWS EC2 instance.
+
+Verification commands:
+
+docker --version
+
+docker info
+
+docker ps
+
+docker images
+
+Docker daemon verification:
+
+sudo systemctl status docker
+
+Docker service management:
+
+sudo systemctl start docker
+sudo systemctl stop docker
+sudo systemctl restart docker
+sudo systemctl enable docker
+
+Docker user permission:
+
+sudo usermod -aG docker ubuntu
+
+After changing the group membership, the user session was refreshed
+to allow Docker commands without sudo.
+
+Docker installation was verified using:
+
+docker run hello-world
+
+============================================================
+6. KONEXA PROJECT STRUCTURE
+===========================
+
+The Docker project follows the following structure:
+
+OpsMate-Docker-Project/
+|
++-- README.md
++-- Dockerfile
++-- compose.yaml
++-- .dockerignore
++-- docker-deployment-report.txt
+|
++-- app/
+|   +-- src/
+|   +-- package.json
+|   +-- ...
+|
++-- config/
+|   +-- environment.example
+|
++-- scripts/
+|   +-- install-docker.sh
+|   +-- build-image.sh
+|   +-- run-container.sh
+|   +-- cleanup.sh
+|
++-- screenshots/
+|
++-- documentation/
+
+============================================================
+7. DOCKERFILE
+=============
+
+The Konexa application uses Node.js 22 Alpine as the base image.
+
+Dockerfile:
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+
+Dockerfile instructions:
+
+FROM
+Specifies the base image.
+
+WORKDIR
+Sets the working directory inside the container.
+
+COPY
+Copies application files into the container.
+
+RUN npm ci
+Installs the required Node.js dependencies.
+
+RUN npm run build
+Creates the production build of the Next.js application.
+
+EXPOSE 3000
+Documents the application port.
+
+CMD
+Starts the Next.js production server.
+
+============================================================
+8. BUILDING THE DOCKER IMAGE
+============================
+
+The image was built using:
+
+docker build -t konexa:v3 .
+
+The image was verified using:
+
+docker images
+
+docker inspect konexa:v3
+
+The CI/CD pipeline additionally creates:
+
+muthukonar/konexa:<BUILD_NUMBER>
+
+and:
+
+muthukonar/konexa:latest
+
+Example:
+
+muthukonar/konexa:38
+muthukonar/konexa:latest
+
+============================================================
+9. DOCKER CONTAINER
+===================
+
+The application container is named:
+
+konexa-v3
+
+The application runs internally on:
+
+Container Port: 3000
+
+The EC2 host exposes:
+
+Host Port: 3000
+
+Port mapping:
+
+3000:3000
+
+Application architecture:
+
+Internet
+|
+v
+AWS EC2
+|
+v
+Docker
+|
+v
+konexa-v3
+|
+v
+Next.js
+|
+v
+Port 3000
+
+Application verification:
+
+curl http://localhost:3000
+
+Expected result:
+
+HTTP 200 OK
+
+============================================================
+10. MYSQL DATABASE CONTAINER
+============================
+
+MySQL is deployed as a separate Docker container.
+
+Container name:
+
+konexa-db
+
+Image:
+
+mysql:8.0
+
+Database:
+
+konexa
+
+Docker network:
+
+konexa-network
+
+Persistent volume:
+
+konexa-db-data
+
+Database configuration:
+
+MYSQL_ROOT_PASSWORD=konexa_root
+MYSQL_DATABASE=konexa
+MYSQL_USER=konexa
+MYSQL_PASSWORD=konexa_password
+
+The MySQL data directory is mounted to:
+
+/var/lib/mysql
+
+Docker volume:
+
+konexa-db-data
+
+This ensures database data can persist even if the MySQL container
+is recreated.
+
+============================================================
+11. DOCKER NETWORKING
+=====================
+
+A custom Docker network is used:
+
+konexa-network
+
+Containers connected to the network:
+
+1. konexa-v3
+2. konexa-db
+
+Architecture:
+
+Konexa Application Container
+|
+|
+v
+konexa-network
+|
+|
+v
+MySQL Container
+
+Docker containers can communicate with each other using container
+names over the Docker network.
+
+============================================================
+12. DOCKER COMPOSE
+==================
+
+Docker Compose is used to define and manage multiple containers.
+
+The Compose application contains:
+
+1. Konexa application
+2. MySQL database
+3. Docker network
+4. Persistent database volume
+
+Common commands:
+
+Validate Compose configuration:
+
+docker compose config
+
+Start services:
+
+docker compose up -d
+
+Check services:
+
+docker compose ps
+
+View logs:
+
+docker compose logs
+
+View application logs:
+
+docker compose logs konexa
+
+View database logs:
+
+docker compose logs database
+
+Stop services:
+
+docker compose down
+
+Persistent volumes can be retained when containers are removed.
+
+============================================================
+13. DOCKER HUB
+==============
+
+Docker Hub is used as the remote container image registry.
+
+Docker Hub repository:
+
+muthukonar/konexa
+
+Docker login:
+
+docker login
+
+Image tagging:
+
+docker tag konexa:v3 muthukonar/konexa:v3
+
+Push:
+
+docker push muthukonar/konexa:v3
+
+Latest image:
+
+docker tag konexa:v3 muthukonar/konexa:latest
+
+docker push muthukonar/konexa:latest
+
+The Docker Hub repository stores versioned images and the latest
+deployment image.
+
+============================================================
+14. JENKINS CI/CD
+=================
+
+Jenkins automates the Docker build and deployment process.
+
+Pipeline:
+
+Developer
+|
+v
+GitHub
+|
+v
+Jenkins
+|
+v
+Clone konexa-v3-docker
+|
+v
+Docker Build
+|
+v
+Docker Image Validation
+|
+v
+Docker Hub Login
+|
+v
+Push Image
+|
+v
+SSH to EC2
+|
+v
+Docker Pull
+|
+v
+Stop Old Container
+|
+v
+Start New Container
+|
+v
+Application Health Check
+|
+v
+SUCCESS
+
+============================================================
+15. JENKINS CREDENTIALS
+=======================
+
+Docker Hub credential:
+
+ID:
+dockerhub-credentials
+
+Purpose:
+Authenticate Jenkins with Docker Hub.
+
+EC2 SSH credential:
+
+ID:
+frontend-agent-ssh
+
+Purpose:
+Allow Jenkins to connect to the EC2 server through SSH.
+
+Target server:
+
+ubuntu@10.0.1.143
+
+============================================================
+16. JENKINS DEPLOYMENT PROCESS
+==============================
+
+Stage 1 – Clone Source Code
+
+Jenkins clones:
+
+Branch:
+konexa-v3-docker
+
+Stage 2 – Docker Build
+
+Jenkins builds:
+
+muthukonar/konexa:<BUILD_NUMBER>
+
+and:
+
+muthukonar/konexa:latest
+
+Stage 3 – Image Validation
+
+Jenkins verifies the Docker image using:
+
+docker images
+
+docker inspect
+
+Stage 4 – Docker Hub Login
+
+Jenkins authenticates using the configured Docker Hub credential.
+
+Stage 5 – Push Image
+
+Jenkins pushes:
+
+muthukonar/konexa:<BUILD_NUMBER>
+
+muthukonar/konexa:latest
+
+Stage 6 – Prepare EC2
+
+Jenkins connects to:
+
+ubuntu@10.0.1.143
+
+and verifies:
+
+* Docker installation
+* Docker service
+* Docker access
+* Port 3000
+
+Stage 7 – Deploy
+
+The EC2 server pulls:
+
+muthukonar/konexa:latest
+
+The old container is removed:
+
+docker rm -f konexa-v3
+
+A new container is started:
+
+docker run -d 
+--name konexa-v3 
+-p 3000:3000 
+--restart unless-stopped 
+muthukonar/konexa:latest
+
+Stage 8 – Verification
+
+Jenkins verifies:
+
+docker ps
+
+docker port konexa-v3
+
+curl http://localhost:3000
+
+Stage 9 – Cleanup
+
+Unused dangling Docker images are cleaned using:
+
+docker image prune -f
+
+============================================================
+17. DOCKER IMAGE VERSIONING
+===========================
+
+Each Jenkins build receives a unique build number.
+
+For example:
+
+Build 38:
+
+muthukonar/konexa:38
+
+and:
+
+muthukonar/konexa:latest
+
+This provides two advantages:
+
+1. latest can be used for normal deployment.
+2. Versioned tags can be used for rollback.
+
+Rollback example:
+
+docker pull muthukonar/konexa:37
+
+docker rm -f konexa-v3
+
+docker run -d 
+--name konexa-v3 
+-p 3000:3000 
+--restart unless-stopped 
+muthukonar/konexa:37
+
+============================================================
+18. TROUBLESHOOTING PERFORMED
+=============================
+
+Problem 1:
+Docker command was not found in Jenkins.
+
+Error:
+
+docker: not found
+
+Solution:
+
+Docker was installed on the Jenkins agent and the Jenkins user
+was given Docker permissions.
+
+---
+
+Problem 2:
+SSH Agent plugin error.
+
+Error:
+
+No such DSL method 'sshagent'
+
+Solution:
+
+The Jenkins SSH Agent plugin was installed/enabled.
+
+---
+
+Problem 3:
+SSH credential was missing.
+
+Error:
+
+Could not find specified credentials:
+konexa-ec2-ssh
+
+Solution:
+
+The existing Jenkins SSH credential:
+
+frontend-agent-ssh
+
+was used.
+
+---
+
+Problem 4:
+Docker image deployment failed.
+
+Error:
+
+invalid reference format
+
+Cause:
+
+The Docker image variable was not correctly available inside the
+remote SSH heredoc.
+
+Solution:
+
+The remote deployment script explicitly defines:
+
+DOCKER_IMAGE="muthukonar/konexa"
+
+---
+
+Problem 5:
+Docker Compose container name conflict.
+
+Error:
+
+Conflict. The container name "/konexa-v3" is already in use.
+
+Cause:
+
+The existing konexa-v3 container was already present.
+
+Solution:
+
+The old container was removed before starting the new deployment.
+
+---
+
+Problem 6:
+Docker container remained in Created state.
+
+Error:
+
+failed to bind host port 0.0.0.0:3000:
+address already in use
+
+Cause:
+
+The previous PM2-managed Next.js application was already using
+port 3000.
+
+Solution:
+
+The old PM2 Konexa applications were removed and Docker was allowed
+to take ownership of port 3000.
+
+============================================================
+19. CONTAINER MANAGEMENT COMMANDS
+=================================
+
+List running containers:
+
+docker ps
+
+List all containers:
+
+docker ps -a
+
+View logs:
+
+docker logs konexa-v3
+
+Inspect container:
+
+docker inspect konexa-v3
+
+Stop:
+
+docker stop konexa-v3
+
+Start:
+
+docker start konexa-v3
+
+Restart:
+
+docker restart konexa-v3
+
+Remove:
+
+docker rm konexa-v3
+
+Force remove:
+
+docker rm -f konexa-v3
+
+View resource usage:
+
+docker stats
+
+View Docker disk usage:
+
+docker system df
+
+Clean unused images:
+
+docker image prune -f
+
+============================================================
+20. MONITORING AND VERIFICATION
+===============================
+
+Docker daemon:
+
+sudo systemctl is-active docker
+
+Docker images:
+
+docker images
+
+Running containers:
+
+docker ps
+
+Container logs:
+
+docker logs konexa-v3
+
+Container details:
+
+docker inspect konexa-v3
+
+Resource usage:
+
+docker stats
+
+Application health:
+
+curl -I http://localhost:3000
+
+Port verification:
+
+sudo ss -lntp | grep :3000
+
+Compose services:
+
+docker compose ps
+
+============================================================
+21. SECURITY CONSIDERATIONS
+===========================
+
+The following security improvements are recommended for production:
+
+1. Do not hardcode database passwords.
+2. Store secrets in AWS Secrets Manager or Parameter Store.
+3. Use Docker secrets or secure environment variables.
+4. Use HTTPS with an SSL/TLS certificate.
+5. Restrict EC2 security group access.
+6. Allow port 3000 only when required.
+7. Use SSH keys instead of passwords.
+8. Use Docker Hub access tokens instead of account passwords.
+9. Scan Docker images for vulnerabilities.
+10. Use non-root containers where possible.
+11. Regularly update the Node.js base image.
+12. Remove unused Docker images and containers.
+
+============================================================
+22. RESOURCE OPTIMIZATION
+=========================
+
+The Docker image uses:
+
+node:22-alpine
+
+Alpine provides a smaller base image compared with many full
+Linux distributions.
+
+The .dockerignore file prevents unnecessary files from being
+included in the Docker build context.
+
+Unused Docker resources can be cleaned using:
+
+docker image prune -f
+
+Further improvements:
+
+* Use multi-stage Docker builds.
+* Use a smaller production image.
+* Run the application as a non-root user.
+* Configure container CPU and memory limits.
+* Implement health checks.
+* Use automated vulnerability scanning.
+
+============================================================
+23. AWS DEPLOYMENT ARCHITECTURE
+===============================
+
+Current EC2 Docker architecture:
+
+```
+             Internet
+                |
+                v
+           AWS EC2
+      10.0.1.143
+                |
+                v
+          Docker Engine
+                |
+         +------+------+
+         |             |
+         v             v
+    konexa-v3      konexa-db
+    Port 3000       MySQL 8.0
+         |             |
+         +------+------+
+                |
+         konexa-network
+```
+
+CI/CD architecture:
+
+Developer
+|
+v
+GitHub
+|
+v
+Jenkins
+|
+v
+Docker Build
+|
+v
+Docker Hub
+|
+v
+AWS EC2
+|
+v
+Docker Container
+|
+v
+Konexa Application
+
+============================================================
+24. FINAL DEPLOYMENT FLOW
+=========================
+
+The final deployment process is:
+
+1. Developer changes Konexa source code.
+2. Code is committed to GitHub.
+3. Jenkins retrieves the konexa-v3-docker branch.
+4. Jenkins builds the Docker image.
+5. Jenkins validates the image.
+6. Jenkins logs into Docker Hub.
+7. Jenkins pushes the versioned image.
+8. Jenkins pushes the latest image.
+9. Jenkins connects to EC2 through SSH.
+10. EC2 pulls the latest Docker image.
+11. Existing Konexa Docker container is removed.
+12. New Konexa container starts.
+13. Port 3000 is exposed.
+14. Jenkins performs a health check.
+15. Unused Docker images are cleaned.
+16. Pipeline reports SUCCESS.
+
+============================================================
+25. FINAL VERIFICATION CHECKLIST
+================================
+
+Docker:
+
+[✓] Docker installed
+[✓] Docker daemon running
+[✓] Docker user access configured
+[✓] hello-world tested
+
+Docker Image:
+
+[✓] Dockerfile created
+[✓] Image built successfully
+[✓] Image inspected
+[✓] Image tagged
+[✓] Image pushed to Docker Hub
+
+Docker Container:
+
+[✓] Konexa container created
+[✓] Port 3000 mapped
+[✓] Container running
+[✓] Application responding
+[✓] Container logs verified
+
+Database:
+
+[✓] MySQL container created
+[✓] Database configured
+[✓] Docker network configured
+[✓] Persistent volume configured
+
+Docker Compose:
+
+[✓] compose.yaml created
+[✓] Application service configured
+[✓] Database service configured
+[✓] Network configured
+[✓] Volume configured
+[✓] Compose configuration validated
+
+Jenkins:
+
+[✓] GitHub source configured
+[✓] Docker build configured
+[✓] Docker Hub credentials configured
+[✓] Docker Hub push configured
+[✓] SSH credentials configured
+[✓] EC2 deployment configured
+[✓] Application verification configured
+[✓] Cleanup configured
+
+============================================================
+26. CONCLUSION
+==============
+
+The Konexa application was successfully containerized using Docker
+and deployed on an AWS EC2 instance.
+
+Docker was used to package the Next.js application and its
+dependencies into a portable container.
+
+MySQL was deployed as a separate container using Docker networking
+and persistent storage.
+
+Docker Compose was used to define the multi-container application
+architecture.
+
+Docker Hub was used as the container image registry.
+
+Jenkins automated the complete CI/CD process from GitHub source code
+to Docker image creation, Docker Hub publishing and EC2 deployment.
+
+The final deployment runs the Konexa application inside a Docker
+container on port 3000.
+
+This implementation demonstrates the practical use of Docker,
+Docker Compose, Docker Hub, Jenkins and AWS EC2 in a DevOps
+deployment workflow.
+
+============================================================
+END OF DOCUMENTATION
+====================
