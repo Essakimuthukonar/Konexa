@@ -1,307 +1,469 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
-
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  --color-neon-teal: var(--neon-teal);
-  --color-neon-purple: var(--neon-purple);
-  --color-neon-pink: var(--neon-pink);
-  --color-neon-orange: var(--neon-orange);
-  --color-neon-green: var(--neon-green);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, monospace;
-
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.4);
-}
+@import "tailwindcss";
 
 :root {
+  --konexa-bg: #050505;
+  --konexa-panel: rgba(15, 15, 15, 0.78);
+  --konexa-panel-2: rgba(25, 25, 25, 0.65);
+  --konexa-gold: #d6a84f;
+  --konexa-gold-bright: #ffd76a;
+  --konexa-red: #ff304f;
+  --konexa-red-dark: #7a1025;
+  --konexa-green: #39ff9a;
+  --konexa-blue: #38a8ff;
+  --konexa-text: #f5f2e9;
+  --konexa-muted: #8c8c8c;
+  --konexa-border: rgba(214, 168, 79, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--konexa-bg);
   color-scheme: dark;
-  --background: #080808;
-  --foreground: #ffffff;
-
-  --card: rgba(255, 255, 255, 0.045);
-  --card-foreground: #ffffff;
-  --popover: #121212;
-  --popover-foreground: #ffffff;
-
-  --primary: #00ffd5;
-  --primary-foreground: #001915;
-  --secondary: rgba(255, 255, 255, 0.06);
-  --secondary-foreground: #ffffff;
-
-  --muted: rgba(255, 255, 255, 0.05);
-  --muted-foreground: #b5b5b5;
-
-  --accent: #00ffd5;
-  --accent-foreground: #001915;
-
-  --destructive: #ff3e81;
-
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #00ffd5;
-
-  --neon-teal: #00ffd5;
-  --neon-purple: #8b5cf6;
-  --neon-pink: #ff3e81;
-  --neon-orange: #ffb800;
-  --neon-green: #00ff9d;
-
-  --chart-1: #00ffd5;
-  --chart-2: #8b5cf6;
-  --chart-3: #ff3e81;
-  --chart-4: #ffb800;
-  --chart-5: #00ff9d;
-
-  --radius: 0.875rem;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground font-sans;
-  }
-  /* Slim futuristic scrollbars */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 213, 0.25);
-    border-radius: 999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 213, 0.45);
-  }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 75% 10%, rgba(214, 168, 79, 0.09), transparent 28%),
+    radial-gradient(circle at 10% 85%, rgba(255, 48, 79, 0.06), transparent 25%),
+    #050505;
+  color: var(--konexa-text);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
-@layer components {
-  /* Frosted glass panel with layered depth */
-  .glass {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.07) 0%,
-      rgba(255, 255, 255, 0.02) 100%
-    );
-    backdrop-filter: blur(18px) saturate(140%);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 20px 60px -20px rgba(0, 0, 0, 0.8),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
-  }
+/* =========================================================
+   KONEXA CINEMATIC BACKGROUND
+   ========================================================= */
 
-  .glass-hover {
-    transition:
-      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.4s ease,
-      border-color 0.4s ease;
-  }
-  .glass-hover:hover {
-    border-color: rgba(0, 255, 213, 0.35);
-    box-shadow:
-      0 30px 80px -20px rgba(0, 0, 0, 0.9),
-      0 0 30px -8px rgba(0, 255, 213, 0.35),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
-  }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
 
-  .text-glow-teal {
-    text-shadow: 0 0 18px rgba(0, 255, 213, 0.55);
-  }
-
-  .neon-divider {
-    background: linear-gradient(
+  background-image:
+    linear-gradient(
+      rgba(214, 168, 79, 0.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
       90deg,
-      transparent,
-      rgba(0, 255, 213, 0.5),
+      rgba(214, 168, 79, 0.035) 1px,
+      transparent 1px
+    );
+
+  background-size: 55px 55px;
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    rgba(0, 0, 0, 0.75) 60%,
+    transparent 100%
+  );
+
+  animation: konexa-grid 18s linear infinite;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 45%,
+      rgba(0, 0, 0, 0.42) 100%
+    );
+
+  box-shadow:
+    inset 0 0 180px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes konexa-grid {
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: 55px 55px, 55px 55px;
+  }
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070707;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--konexa-gold),
+    #6d4d18
+  );
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--konexa-gold-bright);
+}
+
+/* =========================================================
+   CINEMATIC PANELS
+   ========================================================= */
+
+.konexa-panel,
+.card,
+[class*="card"] {
+  position: relative;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.012)
+    ),
+    var(--konexa-panel);
+
+  border: 1px solid var(--konexa-border);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.konexa-panel:hover,
+.card:hover,
+[class*="card"]:hover {
+  border-color: rgba(214, 168, 79, 0.45);
+
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(214, 168, 79, 0.055),
+    inset 0 1px 0 rgba(255, 215, 106, 0.08);
+
+  transform: translateY(-2px);
+}
+
+/* =========================================================
+   GOLD TEXT
+   ========================================================= */
+
+.konexa-gold {
+  color: var(--konexa-gold-bright);
+  text-shadow:
+    0 0 12px rgba(214, 168, 79, 0.25);
+}
+
+.konexa-title {
+  color: #fff;
+  letter-spacing: -0.025em;
+  text-shadow:
+    0 0 25px rgba(214, 168, 79, 0.12);
+}
+
+/* =========================================================
+   GLOW EFFECTS
+   ========================================================= */
+
+.konexa-glow {
+  box-shadow:
+    0 0 10px rgba(214, 168, 79, 0.18),
+    0 0 35px rgba(214, 168, 79, 0.08);
+}
+
+.konexa-red-glow {
+  box-shadow:
+    0 0 12px rgba(255, 48, 79, 0.28),
+    0 0 35px rgba(255, 48, 79, 0.08);
+}
+
+.konexa-green-glow {
+  box-shadow:
+    0 0 12px rgba(57, 255, 154, 0.25),
+    0 0 35px rgba(57, 255, 154, 0.08);
+}
+
+/* =========================================================
+   STATUS INDICATORS
+   ========================================================= */
+
+.konexa-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.konexa-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--konexa-green);
+  box-shadow:
+    0 0 8px var(--konexa-green),
+    0 0 18px rgba(57, 255, 154, 0.5);
+
+  animation: konexa-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes konexa-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.konexa-critical::before {
+  background: var(--konexa-red);
+  box-shadow:
+    0 0 8px var(--konexa-red),
+    0 0 18px rgba(255, 48, 79, 0.55);
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+button {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+input,
+textarea,
+select {
+  background: rgba(8, 8, 8, 0.75) !important;
+  color: #f5f5f5 !important;
+  border-color: rgba(214, 168, 79, 0.18) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: rgba(214, 168, 79, 0.65) !important;
+  box-shadow:
+    0 0 0 2px rgba(214, 168, 79, 0.08),
+    0 0 25px rgba(214, 168, 79, 0.08) !important;
+}
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(214, 168, 79, 0.08),
+      rgba(214, 168, 79, 0.015),
       transparent
     );
-  }
+}
 
-  /* Animated conic border ring */
-  .animated-border {
-    position: relative;
-  }
-  .animated-border::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: conic-gradient(
-      from var(--angle, 0deg),
-      transparent 0%,
-      rgba(0, 255, 213, 0.6) 15%,
-      transparent 35%
+th {
+  color: #d6a84f;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+tbody tr {
+  transition:
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+tbody tr:hover {
+  background: rgba(214, 168, 79, 0.045);
+}
+
+/* =========================================================
+   CINEMATIC DIVIDERS
+   ========================================================= */
+
+.konexa-divider {
+  height: 1px;
+  width: 100%;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(214, 168, 79, 0.45),
+      transparent
     );
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: border-rotate 6s linear infinite;
-    pointer-events: none;
-  }
 }
 
-@property --angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+/* =========================================================
+   HUD CORNERS
+   ========================================================= */
+
+.konexa-hud {
+  position: relative;
 }
 
-@keyframes border-rotate {
-  to {
-    --angle: 360deg;
-  }
+.konexa-hud::before,
+.konexa-hud::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
 }
 
-@keyframes grid-pan {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 60px 60px;
-  }
+.konexa-hud::before {
+  top: 0;
+  left: 0;
+  border-top: 2px solid var(--konexa-gold);
+  border-left: 2px solid var(--konexa-gold);
 }
 
-@keyframes float-slow {
+.konexa-hud::after {
+  right: 0;
+  bottom: 0;
+  border-right: 2px solid var(--konexa-gold);
+  border-bottom: 2px solid var(--konexa-gold);
+}
+
+/* =========================================================
+   FLOATING ANIMATION
+   ========================================================= */
+
+.konexa-float {
+  animation: konexa-float 5s ease-in-out infinite;
+}
+
+@keyframes konexa-float {
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
-    transform: translateY(-14px);
+    transform: translateY(-6px);
   }
 }
 
-@keyframes drift {
+/* =========================================================
+   SHIMMER
+   ========================================================= */
+
+.konexa-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.konexa-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.07),
+    transparent
+  );
+
+  transform: skewX(-18deg);
+  animation: konexa-shimmer 5s infinite;
+  pointer-events: none;
+}
+
+@keyframes konexa-shimmer {
   0% {
-    transform: translate(0, 0) scale(1);
+    left: -120%;
   }
-  33% {
-    transform: translate(40px, -30px) scale(1.08);
-  }
-  66% {
-    transform: translate(-30px, 20px) scale(0.96);
-  }
+
+  45%,
   100% {
-    transform: translate(0, 0) scale(1);
+    left: 140%;
   }
 }
 
-@keyframes pulse-ring {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(1);
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  body::before {
+    background-size: 35px 35px;
   }
-  50% {
-    opacity: 1;
-    transform: scale(1.04);
+
+  .konexa-panel,
+  .card,
+  [class*="card"] {
+    backdrop-filter: blur(10px);
   }
 }
 
-@keyframes gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scan {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(400%);
-  }
-}
-
-@keyframes ticker {
-  0% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.3;
-  }
-}
-
-.animate-float-slow {
-  animation: float-slow 7s ease-in-out infinite;
-}
-.animate-drift {
-  animation: drift 18s ease-in-out infinite;
-}
-.animate-pulse-ring {
-  animation: pulse-ring 3s ease-in-out infinite;
-}
-.animate-rise {
-  opacity: 0;
-  animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

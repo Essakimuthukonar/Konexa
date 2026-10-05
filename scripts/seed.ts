@@ -204,14 +204,11 @@ async function main() {
   // ---------------------------------------------------------
 
   const manufacturers: Record<string, string[]> = {
-    'Lenovo Tablet': ['Lenovo'],
-    'Lava Mobile': ['Lava'],
-    'Samsung Mobile': ['Samsung'],
-    POS: ['Epson', 'Ingenico'],
-    PC: ['Dell', 'HP', 'Lenovo'],
+    Tablet: ['Lenovo'],
+    Mobile: ['Lava', 'Samsung'],
+    Laptop: ['Dell', 'HP', 'Lenovo'],
+    Desktop: ['Dell', 'HP', 'Lenovo'],
     Router: ['Cisco', 'TP-Link', 'MikroTik'],
-    Printer: ['HP', 'Epson', 'Canon'],
-    Server: ['Dell', 'HP'],
     Other: ['Generic'],
   }
 
@@ -224,25 +221,25 @@ async function main() {
     assets.push({
       assetTag: `AST-${String(i).padStart(5, '0')}`,
       serialNumber: `SN${(10000000 + i).toString(36).toUpperCase()}`,
+      name: `${type} Asset ${String(i).padStart(5, '0')}`,
       storeCode: store.storeCode,
-      location: store.location,
+      storeName: store.storeName,
       manufacturer: pick(manufacturers[type]),
       type,
       model: `${type} Model ${(i % 7) + 1}`,
       status: chance(0.9)
-        ? 'ACTIVE'
+        ? 'Active'
         : chance(0.5)
-          ? 'IN_REPAIR'
-          : 'INACTIVE',
+          ? 'Repair'
+          : 'Missing',
+      locationType: 'Store',
       assignedTo: chance(0.7)
         ? `Staff ${(i % 500) + 1}`
         : '',
       purchaseDate: new Date(
         Date.now() - rand() * 3 * 365 * 86_400_000,
       ),
-      lastSeen: new Date(
-        Date.now() - rand() * 7 * 86_400_000,
-      ),
+      notes: '',
     })
   }
 
@@ -291,19 +288,21 @@ async function main() {
     storeCode: a.storeCode,
 
     deviceType:
-      a.type === 'Lenovo Tablet'
+      a.type === 'Tablet'
         ? 'TABLET'
-        : a.type === 'Lava Mobile' ||
-            a.type === 'Samsung Mobile'
+        : a.type === 'Mobile'
           ? 'MOBILE'
           : a.type === 'Other'
             ? 'OTHER'
-            : (a.type.toUpperCase() as
-                | 'POS'
-                | 'PC'
-                | 'ROUTER'
-                | 'PRINTER'
-                | 'SERVER'),
+            : a.type === 'Laptop' || a.type === 'Desktop'
+              ? 'PC'
+              : (a.type.toUpperCase() as
+                  | 'POS'
+                  | 'PC'
+                  | 'ROUTER'
+                  | 'PRINTER'
+                  | 'SERVER'
+                  | 'OTHER'),
 
     manufacturer: a.manufacturer,
     model: a.model,
@@ -506,6 +505,8 @@ async function main() {
     })),
   )
 
+  console.log('Infrastructure seeded: 12')
+
   // ---------------------------------------------------------
   // Applications
   // ---------------------------------------------------------
@@ -529,6 +530,8 @@ async function main() {
       ),
     })),
   )
+
+  console.log('Applications seeded: 15')
 
   // ---------------------------------------------------------
   // Deployments
@@ -564,6 +567,8 @@ async function main() {
     })),
   )
 
+  console.log('Deployments seeded: 80')
+
   // ---------------------------------------------------------
   // Logs
   // ---------------------------------------------------------
@@ -596,6 +601,7 @@ async function main() {
     })),
   )
 
+  console.log('Logs seeded: 300')
   console.log('DevOps demo data seeded.')
 
   await mongoose.disconnect()
@@ -607,5 +613,4 @@ main().catch((err) => {
   console.error(err)
   process.exit(1)
 })
-
 
