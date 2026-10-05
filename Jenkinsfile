@@ -1,318 +1,375 @@
 pipeline {
 
-agent { label 'frontend' }
+    agent { label 'frontend' }
 
-environment {
-    DOCKER_IMAGE = 'muthukonar/konexa'
-    DOCKER_TAG = "${BUILD_NUMBER}"
-
-    SERVER = 'ubuntu@10.0.1.143'
-
-    DOCKER_CREDENTIALS = 'dockerhub-credentials'
-    SSH_CREDENTIALS = 'frontend-agent-ssh'
-}
-
-stages {
-
-    stage('Clone Source Code') {
-        steps {
-            echo '===== CLONING KONEXA FROM GITHUB ====='
-
-            deleteDir()
-
-            git(
-                branch: 'konexa-v3-docker',
-                url: 'https://github.com/Essakimuthukonar/Konexa.git'
-            )
-
-            sh '''
-                echo "===== SOURCE CODE CLONED ====="
-                echo "Branch:"
-                git branch --show-current
-
-                echo "Latest Commit:"
-                git log -1 --oneline
-
-                echo "Project Files:"
-                ls -la
-            '''
-        }
+    triggers {
+        githubPush()
     }
 
-    stage('Docker Build') {
-        steps {
-            echo '===== BUILDING KONEXA DOCKER IMAGE ====='
+    environment {
+        DOCKER_IMAGE = 'muthukonar/konexa'
+        DOCKER_TAG = "${BUILD_NUMBER}"
 
-            sh '''
-                docker build \
-                    -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                    -t ${DOCKER_IMAGE}:latest \
-                    .
-            '''
-        }
+        SERVER = 'ubuntu@10.0.1.143'
+
+        DOCKER_CREDENTIALS = 'dockerhub-credentials'
+        SSH_CREDENTIALS = 'frontend-agent-ssh'
+
+        K8S_NAMESPACE = 'konexa'
+        HELM_RELEASE = 'konexa'
+        HELM_CHART = 'helm'
     }
 
-    stage('Docker Image Validation') {
-        steps {
-            echo '===== VALIDATING DOCKER IMAGE ====='
+    stages {
 
-            sh '''
-                echo "===== DOCKER IMAGES ====="
-                docker images ${DOCKER_IMAGE}
+        stage('Clone Source Code') {
+            steps {
+                echo '===== CLONING KONEXA MAIN BRANCH ====='
 
-                echo "===== DOCKER IMAGE INSPECT ====="
-                docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
+                deleteDir()
 
-                echo "===== IMAGE VALIDATION PASSED ====="
-            '''
-        }
-    }
-
-    stage('Login to Docker Hub') {
-        steps {
-            echo '===== LOGGING IN TO DOCKER HUB ====='
-
-            withCredentials([
-                usernamePassword(
-                    credentialsId: "${DOCKER_CREDENTIALS}",
-                    usernameVariable: 'DOCKER_USERNAME',
-                    passwordVariable: 'DOCKER_PASSWORD'
+                git(
+                    branch: 'main',
+                    url: 'https://github.com/Essakimuthukonar/Konexa.git'
                 )
-            ]) {
 
                 sh '''
-                    echo "$DOCKER_PASSWORD" | \
-                    docker login \
-                    --username "$DOCKER_USERNAME" \
-                    --password-stdin
-                '''
+                    set -e
 
+                    echo "===== SOURCE ====="
+                    git branch --show-current
+                    git log -1 --oneline
+
+                    echo "===== PROJECT ====="
+                    ls -la
+
+                    echo "===== HELM CHART ====="
+                    ls -la helm
+                '''
             }
         }
-    }
 
-    stage('Push Image to Docker Hub') {
-        steps {
-            echo '===== PUSHING KONEXA IMAGE TO DOCKER HUB ====='
-
-            sh '''
-                echo "===== PUSHING VERSIONED IMAGE ====="
-
-                docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-
-                echo "===== PUSHING LATEST IMAGE ====="
-
-                docker push ${DOCKER_IMAGE}:latest
-
-                echo "===== DOCKER HUB PUSH SUCCESSFUL ====="
-            '''
-        }
-    }
-
-    stage('Prepare EC2') {
-        steps {
-            echo '===== CHECKING EC2 DOCKER ENVIRONMENT ====='
-
-            sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+        stage('Docker Build') {
+            steps {
+                echo '===== BUILDING KONEXA IMAGE ====='
 
                 sh '''
-                    ssh \
-                        -o StrictHostKeyChecking=no \
-                        ${SERVER} << 'EOF'
+                    set -e
 
+                    docker build \
+                        -t ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                        -t ${DOCKER_IMAGE}:latest \
+                        .
+                '''
+            }
+        }
+
+        stage('Docker Image Validation') {
+            steps {
+                echo '===== VALIDATING IMAGE ====='
+
+                sh '''
+                    set -e
+
+                    docker inspect ${DOCKER_IMAGE}:${DOCKER_TAG} > /dev/null
+
+                    echo "===== IMAGE ====="
+                    docker images ${DOCKER_IMAGE}
+
+                    echo "===== VALIDATION PASSED ====="
+                '''
+            }
+        }
+
+        stage('Docker Hub Login') {
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: "${DOCKER_CREDENTIALS}",
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
                         set -e
 
-                        echo "=========================================="
-                        echo "        EC2 CONNECTION SUCCESSFUL"
-                        echo "=========================================="
-
-                        echo "===== DOCKER VERSION ====="
-                        docker --version
-
-                        echo "===== DOCKER SERVICE STATUS ====="
-                        sudo systemctl is-active docker
-
-                        echo "===== DOCKER ACCESS TEST ====="
-                        docker ps
-
-                        echo "===== PORT 3000 CHECK ====="
-                        sudo ss -lntp | grep :3000 || true
-
-                        echo "===== EC2 PREPARATION COMPLETE ====="
-
-EOF
-'''
-
+                        echo "$DOCKER_PASSWORD" | \
+                        docker login \
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
+                    '''
+                }
             }
         }
-    }
 
-    stage('Deploy to EC2') {
-        steps {
-            echo '===== DEPLOYING KONEXA TO EC2 ====='
+        stage('Push Docker Image') {
+            steps {
 
-            withCredentials([
-                usernamePassword(
-                    credentialsId: "${DOCKER_CREDENTIALS}",
-                    usernameVariable: 'DOCKER_USERNAME',
-                    passwordVariable: 'DOCKER_PASSWORD'
-                )
-            ]) {
+                sh '''
+                    set -e
+
+                    echo "===== PUSHING ${DOCKER_IMAGE}:${DOCKER_TAG} ====="
+
+                    docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+
+                    echo "===== PUSHING LATEST ====="
+
+                    docker push ${DOCKER_IMAGE}:latest
+
+                    echo "===== DOCKER PUSH SUCCESSFUL ====="
+                '''
+            }
+        }
+
+        stage('Prepare Kubernetes') {
+            steps {
+
+                echo '===== CHECKING KUBERNETES ====='
 
                 sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
 
                     sh '''
                         ssh \
                             -o StrictHostKeyChecking=no \
-                            ${SERVER} \
-                            "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOF'
+                            ${SERVER} << 'EOF'
 
                             set -e
 
-                            DOCKER_IMAGE="muthukonar/konexa"
+                            echo "===== KUBECTL ====="
+                            kubectl version --client
 
-                            echo "=========================================="
-                            echo "       KONEXA EC2 DEPLOYMENT"
-                            echo "=========================================="
+                            echo "===== HELM ====="
+                            helm version --short
 
-                            echo "===== DOCKER HUB LOGIN ====="
+                            echo "===== KUBERNETES NODES ====="
+                            kubectl get nodes
 
-                            echo "$DOCKER_PASSWORD" | \
-                            docker login \
-                            --username "$DOCKER_USERNAME" \
-                            --password-stdin
+                            echo "===== NAMESPACE ====="
+                            kubectl get namespace ${K8S_NAMESPACE} \
+                                || kubectl create namespace ${K8S_NAMESPACE}
 
-                            echo "===== PULLING LATEST KONEXA IMAGE ====="
-
-                            docker pull "$DOCKER_IMAGE:latest"
-
-                            echo "===== STOPPING OLD KONEXA CONTAINER ====="
-
-                            docker rm -f konexa-v3 2>/dev/null || true
-
-                            echo "===== STARTING NEW KONEXA CONTAINER ====="
-
-                            docker run -d \
-                                --name konexa-v3 \
-                                -p 3000:3000 \
-                                --restart unless-stopped \
-                                "$DOCKER_IMAGE:latest"
-
-                            echo "===== WAITING FOR APPLICATION ====="
-
-                            sleep 10
-
-                            echo "===== CONTAINER STATUS ====="
-
-                            docker ps --filter "name=konexa-v3"
-
-                            echo "===== APPLICATION HEALTH CHECK ====="
-
-                            curl -f http://localhost:3000
-
-                            echo ""
-                            echo "=========================================="
-                            echo "     KONEXA DEPLOYMENT SUCCESSFUL"
-                            echo "=========================================="
+                            echo "===== PREPARATION COMPLETE ====="
 
 EOF
-'''
-
+                    '''
                 }
             }
         }
-    }
 
-    stage('Verify Deployment') {
-        steps {
-            echo '===== VERIFYING KONEXA APPLICATION ====='
+        stage('Upload Helm Chart') {
+            steps {
 
-            sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+                echo '===== UPLOADING HELM CHART TO EC2 ====='
+
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
+                    sh '''
+                        set -e
+
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} \
+                            "rm -rf /tmp/konexa-helm && mkdir -p /tmp/konexa-helm"
+
+                        scp \
+                            -o StrictHostKeyChecking=no \
+                            -r ${HELM_CHART}/* \
+                            ${SERVER}:/tmp/konexa-helm/
+                    '''
+                }
+            }
+        }
+
+        stage('Helm Deploy to Kubernetes') {
+            steps {
+
+                echo '===== DEPLOYING KONEXA WITH HELM ====='
+
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
+                    sh '''
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} << EOF
+
+                            set -e
+
+                            echo "=========================================="
+                            echo "       KONEXA KUBERNETES DEPLOYMENT"
+                            echo "=========================================="
+
+                            echo "===== HELM UPGRADE ====="
+
+                            helm upgrade --install ${HELM_RELEASE} /tmp/konexa-helm \
+                                --namespace ${K8S_NAMESPACE} \
+                                --create-namespace \
+                                --set image.repository=${DOCKER_IMAGE} \
+                                --set image.tag=${DOCKER_TAG} \
+                                --set image.pullPolicy=Always \
+                                --wait \
+                                --timeout 10m
+
+                            echo "===== HELM DEPLOYMENT SUCCESSFUL ====="
+
+EOF
+                    '''
+                }
+            }
+        }
+
+        stage('Kubernetes Rollout') {
+            steps {
+
+                echo '===== WAITING FOR KUBERNETES ROLLOUT ====='
+
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
+                    sh '''
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} << 'EOF'
+
+                            set -e
+
+                            kubectl rollout status \
+                                deployment/konexa \
+                                -n konexa \
+                                --timeout=10m
+
+                            echo "===== PODS ====="
+
+                            kubectl get pods \
+                                -n konexa \
+                                -o wide
+
+                            echo "===== SERVICES ====="
+
+                            kubectl get svc \
+                                -n konexa
+
+                            echo "===== PVC ====="
+
+                            kubectl get pvc \
+                                -n konexa
+
+EOF
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+
+                echo '===== VERIFYING KONEXA ====='
+
+                sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+
+                    sh '''
+                        ssh \
+                            -o StrictHostKeyChecking=no \
+                            ${SERVER} << 'EOF'
+
+                            set -e
+
+                            echo "===== HELM STATUS ====="
+
+                            helm status konexa \
+                                -n konexa
+
+                            echo "===== DEPLOYMENT ====="
+
+                            kubectl get deployment konexa \
+                                -n konexa
+
+                            echo "===== POD HEALTH ====="
+
+                            kubectl get pods \
+                                -n konexa
+
+                            echo "===== APPLICATION TEST ====="
+
+                            curl -f http://localhost
+
+                            echo ""
+                            echo "=========================================="
+                            echo "     KONEXA DEPLOYMENT VERIFIED"
+                            echo "=========================================="
+
+EOF
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Cleanup') {
+            steps {
+
+                echo '===== CLEANING JENKINS DOCKER IMAGE ====='
 
                 sh '''
-                    ssh \
-                        -o StrictHostKeyChecking=no \
-                        ${SERVER} \
-                        "echo '===== CONTAINER ====='; \
-                         docker ps --filter 'name=konexa-v3'; \
-                         echo '===== PORT ====='; \
-                         docker port konexa-v3; \
-                         echo '===== HTTP HEALTH CHECK ====='; \
-                         curl -f http://localhost:3000"
+                    docker image prune -f || true
+                    docker logout || true
                 '''
-
-                echo '===== KONEXA APPLICATION IS RUNNING ON PORT 3000 ====='
             }
         }
     }
 
-    stage('Docker Cleanup') {
-        steps {
-            echo '===== CLEANING UNUSED DOCKER RESOURCES ====='
+    post {
 
-            sshagent(credentials: ["${SSH_CREDENTIALS}"]) {
+        success {
 
-                sh '''
-                    ssh \
-                        -o StrictHostKeyChecking=no \
-                        ${SERVER} \
-                        "docker image prune -f"
-                '''
-            }
+            echo '''
+            ==============================================
+                 KONEXA CI/CD PIPELINE SUCCESS
+            ==============================================
+
+            GitHub
+                |
+                v
+            Jenkins
+                |
+                v
+            Docker Build
+                |
+                v
+            Docker Hub
+                |
+                v
+            EC2
+                |
+                v
+            Helm
+                |
+                v
+            Kubernetes
+                |
+                v
+            Konexa Deployment
+                |
+                v
+            Konexa Pods
+                |
+                v
+            MongoDB StatefulSet + PVC
+
+            ==============================================
+            '''
+        }
+
+        failure {
+
+            echo '''
+            ==============================================
+                 KONEXA CI/CD PIPELINE FAILED
+            ==============================================
+
+            Check the failed Jenkins stage.
+
+            ==============================================
+            '''
         }
     }
-}
-
-post {
-
-    success {
-        echo '''
-        ==============================================
-             KONEXA CI/CD PIPELINE SUCCESS
-        ==============================================
-
-        GitHub
-            |
-            v
-        Jenkins
-            |
-            v
-        Docker Build
-            |
-            v
-        Docker Hub
-            |
-            v
-        EC2
-            |
-            v
-        Docker Container
-            |
-            v
-        Port 3000
-            |
-            v
-        KONEXA APPLICATION
-
-        ==============================================
-        '''
-    }
-
-    failure {
-        echo '''
-        ==============================================
-             KONEXA CI/CD PIPELINE FAILED
-        ==============================================
-
-        Check the failed stage in Jenkins Console.
-
-        ==============================================
-        '''
-    }
-
-    always {
-        sh 'docker logout || true'
-    }
-}
-
 }
