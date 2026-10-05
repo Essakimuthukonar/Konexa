@@ -310,7 +310,8 @@ EOF
                 echo '===== CLEANING JENKINS DOCKER IMAGE ====='
 
                 sh '''
-                    docker image prune -f || true
+                    docker image prune -af || true
+                    docker builder prune -af || true
                     docker logout || true
                 '''
             }
