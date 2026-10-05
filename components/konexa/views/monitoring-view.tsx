@@ -46,7 +46,7 @@ export function MonitoringView() {
   return (
     <PageShell
       title="Monitoring"
-      subtitle="Time-series metrics across CPU, memory, disk, network and uptime. Demo data — ready for future real integrations."
+      subtitle="Time-series metrics across CPU, memory, disk, network and uptime."
       actions={
         <div className="flex gap-1.5 rounded-2xl border border-border bg-white/[0.02] p-1">
           {RANGES.map((r) => (
@@ -66,8 +66,12 @@ export function MonitoringView() {
         </div>
       }
     >
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        Demo / Historical Operational Data — these series are synthetic until real monitoring integration exists.
+      </p>
       <Panel>
         <PanelHeading title="System Health" tag="Overview" color="#00ff9d" icon={ShieldCheck} />
+        <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Summary cards derived from the current demo series</p>
         <div className="flex flex-wrap gap-4">
           {[
             { l: 'CPU Avg', v: `${Math.round(series.cpu.reduce((a, b) => a + b, 0) / series.cpu.length)}%`, c: '#00ffd5' },

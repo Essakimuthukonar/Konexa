@@ -19,6 +19,8 @@ export function useQuery<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
 
   useEffect(() => {
     let active = true
+    // Resetting to 'loading' here is intentional: deps changed, start a fresh fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState((s) => ({ ...s, status: 'loading', error: null }))
     fetcher()
       .then((data) => {
@@ -41,6 +43,8 @@ export function useQuery<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
 export function useNow(intervalMs = 1000) {
   const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
+    // Client-only clock value: state must be set after mount to avoid SSR hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNow(new Date())
     const id = setInterval(() => setNow(new Date()), intervalMs)
     return () => clearInterval(id)

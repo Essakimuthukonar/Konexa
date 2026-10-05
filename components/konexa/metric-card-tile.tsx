@@ -1,11 +1,12 @@
 'use client'
 
 import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from 'lucide-react'
-import { useNav } from '@/hooks/use-nav'
 import { TiltCard } from './tilt-card'
 import { AnimatedNumber } from './animated-number'
 import { SparkArea } from './spark-area'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { viewPath } from '@/lib/routes'
 import type { MetricCard } from '@/lib/types'
 
 export function MetricCardTile({
@@ -15,7 +16,7 @@ export function MetricCardTile({
   metric: MetricCard
   icon: LucideIcon
 }) {
-  const { setView } = useNav()
+  const router = useRouter()
   const TrendIcon =
     metric.trend.direction === 'up'
       ? ArrowUpRight
@@ -34,7 +35,7 @@ export function MetricCardTile({
     <TiltCard className="animate-rise" max={5}>
       <button
         type="button"
-        onClick={() => setView(metric.targetView)}
+        onClick={() => router.push(viewPath(metric.targetView))}
         className="glass glass-hover group flex w-full flex-col rounded-3xl p-5 text-left"
         aria-label={`${metric.label} — ${metric.trendLabel}. Open details.`}
       >

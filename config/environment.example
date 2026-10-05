@@ -1,4 +1,3 @@
-MYSQL_ROOT_PASSWORD=konexa_root
-MYSQL_DATABASE=konexa
-MYSQL_USER=konexa
-MYSQL_PASSWORD=konexa_password
+# MongoDB connection (no credentials committed — fill in locally via .env)
+MONGODB_URI=mongodb://localhost:27017/konexa
+MONGODB_DB_NAME=konexa

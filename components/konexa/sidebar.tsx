@@ -13,11 +13,20 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  Store,
+  Boxes,
+  Cpu,
+  AlertTriangle,
+  Bell,
+  Network as NetworkIcon,
   type LucideIcon,
 } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useNav } from '@/hooks/use-nav'
 import { usePrefersReducedMotion } from '@/hooks/use-query'
 import { cn } from '@/lib/utils'
+import { viewPath } from '@/lib/routes'
 import type { ViewId } from '@/lib/types'
 
 type NavItem = {
@@ -28,16 +37,32 @@ type NavItem = {
   desc: string
 }
 
-const NAV: NavItem[] = [
-  { label: 'Overview', view: 'overview', icon: LayoutDashboard, accent: '0,255,213', desc: 'Command center summary' },
-  { label: 'Infrastructure', view: 'infrastructure', icon: Blocks, accent: '0,255,213', desc: 'VPC & resource topology' },
-  { label: 'Servers', view: 'servers', icon: Server, accent: '0,255,157', desc: 'EC2 instances & health' },
-  { label: 'Applications', view: 'applications', icon: Rocket, accent: '139,92,246', desc: 'App status & versions' },
-  { label: 'Deployments', view: 'deployments', icon: Rocket, accent: '0,255,157', desc: 'CI/CD pipeline history' },
-  { label: 'Backups', view: 'backups', icon: HardDrive, accent: '139,92,246', desc: 'S3 backup operations' },
-  { label: 'Monitoring', view: 'monitoring', icon: Activity, accent: '255,62,129', desc: 'Live metric charts' },
-  { label: 'Logs', view: 'logs', icon: ScrollText, accent: '255,184,0', desc: 'Terminal log stream' },
-  { label: 'Settings', view: 'settings', icon: Settings, accent: '139,92,246', desc: 'Platform configuration' },
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Store Operations',
+    items: [
+      { label: 'Overview', view: 'overview', icon: LayoutDashboard, accent: '0,255,213', desc: 'Command center summary' },
+      { label: 'Stores', view: 'stores', icon: Store, accent: '0,255,157', desc: 'Store estate overview' },
+      { label: 'Assets', view: 'assets', icon: Boxes, accent: '139,92,246', desc: 'Hardware & asset registry' },
+      { label: 'Devices', view: 'devices', icon: Cpu, accent: '255,184,0', desc: 'Edge & POS devices' },
+      { label: 'Incidents', view: 'incidents', icon: AlertTriangle, accent: '255,62,129', desc: 'Active incidents' },
+      { label: 'Alerts', view: 'alerts', icon: Bell, accent: '255,184,0', desc: 'Alert rules & feeds' },
+      { label: 'Network', view: 'network', icon: NetworkIcon, accent: '0,255,213', desc: 'Connectivity & VPN' },
+      { label: 'Backups', view: 'backups', icon: HardDrive, accent: '139,92,246', desc: 'S3 backup operations' },
+    ],
+  },
+  {
+    label: 'DevOps / Platform',
+    items: [
+      { label: 'Infrastructure', view: 'infrastructure', icon: Blocks, accent: '0,255,213', desc: 'VPC & resource topology' },
+      { label: 'Servers', view: 'servers', icon: Server, accent: '0,255,157', desc: 'EC2 instances & health' },
+      { label: 'Applications', view: 'applications', icon: Rocket, accent: '139,92,246', desc: 'App status & versions' },
+      { label: 'Deployments', view: 'deployments', icon: Rocket, accent: '0,255,157', desc: 'CI/CD pipeline history' },
+      { label: 'Monitoring', view: 'monitoring', icon: Activity, accent: '255,62,129', desc: 'Live metric charts' },
+      { label: 'Logs', view: 'logs', icon: ScrollText, accent: '255,184,0', desc: 'Terminal log stream' },
+      { label: 'Settings', view: 'settings', icon: Settings, accent: '139,92,246', desc: 'Platform configuration' },
+    ],
+  },
 ]
 
 const ABOUT_ITEM: NavItem = {
@@ -49,7 +74,8 @@ const ABOUT_ITEM: NavItem = {
 }
 
 export function Sidebar() {
-  const { view, setView, sidebarOpen, setSidebarOpen, collapsed, toggleCollapsed } = useNav()
+  const { sidebarOpen, setSidebarOpen, collapsed, toggleCollapsed } = useNav()
+  const pathname = usePathname()
   const reduced = usePrefersReducedMotion()
 
   return (
@@ -109,29 +135,34 @@ export function Sidebar() {
 
           {/* Nav items */}
           <div className="flex flex-1 flex-col gap-1 overflow-y-auto pr-1">
-            {NAV.map((item) => {
-              const Icon = item.icon
-              const isActive = view === item.view
-              return (
-                <NavButton
-                  key={item.view}
-                  item={item}
-                  isActive={isActive}
-                  collapsed={collapsed}
-                  reduced={reduced}
-                  onClick={() => setView(item.view)}
-                />
-              )
-            })}
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="flex flex-col gap-1">
+                {!collapsed && (
+                  <p className="px-3 pb-1 pt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground/60">
+                    {group.label}
+                  </p>
+                )}
+                {group.items.map((item) => (
+                  <NavButton
+                    key={item.view}
+                    item={item}
+                    isActive={pathname === viewPath(item.view)}
+                    collapsed={collapsed}
+                    reduced={reduced}
+                    onClick={() => setSidebarOpen(false)}
+                  />
+                ))}
+              </div>
+            ))}
 
             <div className="mx-3 my-2 h-px neon-divider" />
 
             <NavButton
               item={ABOUT_ITEM}
-              isActive={view === ABOUT_ITEM.view}
+              isActive={pathname === viewPath(ABOUT_ITEM.view)}
               collapsed={collapsed}
               reduced={reduced}
-              onClick={() => setView(ABOUT_ITEM.view)}
+              onClick={() => setSidebarOpen(false)}
             />
           </div>
 
@@ -170,8 +201,8 @@ function NavButton({
 }) {
   const Icon = item.icon
   return (
-    <button
-      type="button"
+    <Link
+      href={viewPath(item.view)}
       onClick={onClick}
       aria-current={isActive ? 'page' : undefined}
       title={collapsed ? item.label : undefined}
@@ -215,6 +246,6 @@ function NavButton({
       {collapsed && (
         <span className="sr-only">{item.label}</span>
       )}
-    </button>
+    </Link>
   )
 }

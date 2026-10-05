@@ -1,11 +1,8 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { ViewId } from '@/lib/types'
 
 interface NavState {
-  view: ViewId
-  setView: (v: ViewId) => void
   sidebarOpen: boolean
   setSidebarOpen: (v: boolean) => void
   collapsed: boolean
@@ -17,16 +14,9 @@ interface NavState {
 const NavContext = createContext<NavState | null>(null)
 
 export function NavProvider({ children }: { children: ReactNode }) {
-  const [view, setViewRaw] = useState<ViewId>('overview')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
-
-  const setView = useCallback((v: ViewId) => {
-    setViewRaw(v)
-    setSidebarOpen(false)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
 
   const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), [])
 
@@ -47,8 +37,6 @@ export function NavProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<NavState>(
     () => ({
-      view,
-      setView,
       sidebarOpen,
       setSidebarOpen,
       collapsed,
@@ -56,7 +44,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
       paletteOpen,
       setPaletteOpen,
     }),
-    [view, setView, sidebarOpen, collapsed, toggleCollapsed, paletteOpen],
+    [sidebarOpen, collapsed, toggleCollapsed, paletteOpen],
   )
 
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>

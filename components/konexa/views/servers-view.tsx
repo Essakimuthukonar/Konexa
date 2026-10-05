@@ -210,7 +210,7 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
   )
 }
 
-function MiniMetric({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; color: string }) {
+function MiniMetric({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; value: string; color: string }) {
   return (
     <div className="rounded-xl border border-border bg-white/[0.02] px-2 py-2.5 text-center">
       <Icon className="mx-auto h-4 w-4" style={{ color }} />

@@ -11,8 +11,9 @@ import {
   Cpu,
   type LucideIcon,
 } from 'lucide-react'
-import { useNav } from '@/hooks/use-nav'
+import { useRouter } from 'next/navigation'
 import type { CoreLink } from '@/lib/types'
+import { viewPath } from '@/lib/routes'
 
 const ICONS: Record<string, LucideIcon> = {
   Server,
@@ -28,7 +29,7 @@ export function KonexaCore({ links }: { links: CoreLink[] }) {
   const ref = useRef<HTMLDivElement>(null)
   const frame = useRef(0)
   const [hovered, setHovered] = useState<string | null>(null)
-  const { setView } = useNav()
+  const router = useRouter()
 
   const handleMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = ref.current
@@ -131,7 +132,7 @@ export function KonexaCore({ links }: { links: CoreLink[] }) {
             type="button"
             onMouseEnter={() => setHovered(link.id)}
             onMouseLeave={() => setHovered(null)}
-            onClick={() => setView(link.view)}
+            onClick={() => router.push(viewPath(link.view))}
             className="group absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 outline-none"
             style={{ left: `${x}%`, top: `${y}%` }}
             aria-label={`${link.label} — ${link.sublabel}`}

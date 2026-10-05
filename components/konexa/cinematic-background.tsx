@@ -32,6 +32,8 @@ export function CinematicBackground() {
       delay: Math.random() * -20,
       color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
     }))
+    // Random particle field must be generated after mount to avoid SSR hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setParticles(next)
   }, [])
 

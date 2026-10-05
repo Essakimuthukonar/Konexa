@@ -73,7 +73,11 @@ export const dataService = {
   },
   getMonitoringSeries(range: string): Promise<Record<string, number[]>> {
     const key = (range in MONITORING_SERIES ? range : '24H') as keyof typeof MONITORING_SERIES
-    return delay({ ...MONITORING_SERIES[key] })
+    return delay(
+      Object.fromEntries(
+        Object.entries(MONITORING_SERIES[key]).map(([k, v]) => [k, [...v]]),
+      ),
+    )
   },
 }
 

@@ -1,5 +1,11 @@
 export type ViewId =
   | 'overview'
+  | 'stores'
+  | 'assets'
+  | 'devices'
+  | 'incidents'
+  | 'alerts'
+  | 'network'
   | 'infrastructure'
   | 'servers'
   | 'applications'

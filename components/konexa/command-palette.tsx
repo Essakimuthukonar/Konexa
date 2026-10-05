@@ -16,6 +16,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useNav } from '@/hooks/use-nav'
+import { useRouter } from 'next/navigation'
+import { viewPath } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 import type { ViewId } from '@/lib/types'
 
@@ -41,7 +43,14 @@ const COMMANDS: Command[] = [
 ]
 
 export function CommandPalette() {
-  const { paletteOpen, setPaletteOpen, setView } = useNav()
+  const { paletteOpen } = useNav()
+  if (!paletteOpen) return null
+  return <PaletteDialog />
+}
+
+function PaletteDialog() {
+  const { setPaletteOpen } = useNav()
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -58,17 +67,10 @@ export function CommandPalette() {
   }, [query])
 
   useEffect(() => {
-    if (paletteOpen) {
-      setQuery('')
-      setActive(0)
-      requestAnimationFrame(() => inputRef.current?.focus())
-    }
-  }, [paletteOpen])
-
-  useEffect(() => setActive(0), [query])
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
 
   useEffect(() => {
-    if (!paletteOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
@@ -80,21 +82,19 @@ export function CommandPalette() {
         e.preventDefault()
         const cmd = filtered[active]
         if (cmd) {
-          setView(cmd.id)
+          router.push(viewPath(cmd.id))
           setPaletteOpen(false)
         }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [paletteOpen, filtered, active, setView, setPaletteOpen])
+  }, [filtered, active, router, setPaletteOpen])
 
   useEffect(() => {
     const el = listRef.current?.querySelector('[data-active="true"]')
     el?.scrollIntoView({ block: 'nearest' })
   }, [active])
-
-  if (!paletteOpen) return null
 
   return (
     <div
@@ -113,7 +113,7 @@ export function CommandPalette() {
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setActive(0) }}
             placeholder="Search commands..."
             className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
             aria-label="Search commands"
@@ -137,7 +137,7 @@ export function CommandPalette() {
                   type="button"
                   data-active={isActive}
                   onMouseEnter={() => setActive(i)}
-                  onClick={() => { setView(cmd.id); setPaletteOpen(false) }}
+                  onClick={() => { router.push(viewPath(cmd.id)); setPaletteOpen(false) }}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors',
                     isActive ? 'bg-neon-teal/10' : 'hover:bg-white/5',

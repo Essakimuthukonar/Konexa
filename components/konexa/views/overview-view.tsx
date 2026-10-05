@@ -16,13 +16,14 @@ import {
 import { useQuery } from '@/hooks/use-query'
 import { dataService } from '@/lib/api'
 import type { CoreLink, MetricCard, SystemHealth } from '@/lib/types'
+import type { LucideIcon } from 'lucide-react'
 import { KonexaCore } from '../konexa-core'
 import { MetricCardTile } from '../metric-card-tile'
 import { MetricRing } from '../metric-ring'
 import { StatusBadge } from '../status-badge'
 import { Panel, PanelHeading, SkeletonPanel } from '../page-shell'
 
-const METRIC_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+const METRIC_ICONS: Record<string, LucideIcon> = {
   cpu: Cpu,
   memory: MemoryStick,
   disk: HardDrive,
