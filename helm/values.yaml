@@ -1,0 +1,18 @@
+replicaCount: 2
+
+image:
+  repository: konexa
+  tag: v4
+  pullPolicy: Never
+
+service:
+  type: NodePort
+  port: 3000
+  nodePort: 30080
+
+mongodb:
+  image: mongo:7.0
+  database: konexa
+  storage: 2Gi
+
+resources: {}

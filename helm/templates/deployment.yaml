@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helm.fullname" . }}
+  labels:
+    app: konexa
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: konexa
+  template:
+    metadata:
+      labels:
+        app: konexa
+    spec:
+      containers:
+        - name: konexa
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MONGODB_URI
+              value: "mongodb://{{ include "helm.fullname" . }}-mongodb:27017/{{ .Values.mongodb.database }}"
+            - name: MONGODB_DB_NAME
+              value: "{{ .Values.mongodb.database }}"
