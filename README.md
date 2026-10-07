@@ -1,5 +1,5 @@
 cat > README.md <<'EOF'
-# 🚀 KONEXA
+# 🚀 KONEXA ...
 
 > ## Enterprise DevOps Operations & Infrastructure Platform
 >
